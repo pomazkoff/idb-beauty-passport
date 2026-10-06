@@ -15,7 +15,8 @@
     "@idb/core": "workspace:*",
     "@idb/survey-config": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "preact": "^10.25.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",

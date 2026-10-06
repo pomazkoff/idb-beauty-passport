@@ -119,13 +119,11 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
     if (status === 429)
       return reply.code(429).send(new AppError("RATE_LIMITED", "Слишком много запросов").toBody());
     if (status && status >= 400 && status < 500) {
-      return reply
-        .code(status)
-        .send({
-          errors: [
-            { code: status === 404 ? "NOT_FOUND" : "VALIDATION_ERROR", message: (err as Error).message },
-          ],
-        });
+      return reply.code(status).send({
+        errors: [
+          { code: status === 404 ? "NOT_FOUND" : "VALIDATION_ERROR", message: (err as Error).message },
+        ],
+      });
     }
     req.log.error({ err }, "unhandled");
     return reply.code(500).send(new AppError("INTERNAL", "Внутренняя ошибка").toBody());

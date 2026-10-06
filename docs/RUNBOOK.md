@@ -7,6 +7,7 @@
 | api | `node apps/api/dist/main.js` | 3000 | PostgreSQL |
 | worker | `node apps/worker/dist/main.js` | — | PostgreSQL, ENSI (или file/mock) |
 | web | статика `apps/web/dist` (nginx) + `apps/web/dist/embed/idb-beauty-quiz.js` для ЛК | 80 | api (CORS) |
+| admin | конструктор, статика `apps/admin/dist` (nginx) | 80 (compose: 8081) | api (CORS, `ADMIN_TOKEN`) |
 
 API stateless — масштабируется горизонтально. Воркер можно запускать в нескольких экземплярах (`FOR UPDATE SKIP LOCKED`).
 
@@ -36,6 +37,8 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 - `ENSI_SINK=http` + `ENSI_*` — см. `docs/ENSI.md`.
 - `SHOW_DRAFT_BADGE=false` в production (плашка «вопрос дописан» — для приёмки контента).
 - `RETENTION_DAYS` — архивные сессии и события старше N дней удаляются раз в сутки (api).
+- `ADMIN_TOKEN` (≥16 символов) — вход в конструктор; пусто = админ-API выключен. Выдавать продакту лично, менять при смене команды.
+- `INTEGRATION_API_KEY` (≥16 символов) — ключ для ENSI (`X-Api-Key`); пусто = интеграционный API выключен.
 
 ## Встраивание в ЛК
 
@@ -52,11 +55,15 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 
 ## Обновление контента опросника
 
-1. Правка `packages/survey-config/survey.v1.json` (или регенерация из прототипа: `pnpm survey:extract` → правка карты кодов `src/build/codes.ts` → `tsx src/build/generate.ts`).
-2. **Коды вариантов не переименовывать**; удаление — `deprecated: true`. Новая версия — bump `version` (semver).
-3. `pnpm survey:validate && pnpm --filter @idb/survey-config test` — контрольные числа в `src/survey.test.ts` править вместе с контентом.
-4. `pnpm survey:content-map` → сверка `docs/content-map.md` с заказчиком.
-5. Деплой api: новая версия регистрируется в `survey_versions` при старте. Активные сессии на старой версии получают 409 `SURVEY_VERSION_MISMATCH` на изменяющих запросах; клиент предлагает «Пройти заново». Их ответы остаются в БД.
+Контент живёт в БД (`survey_versions`), редактируется в конструкторе (`admin`, вход по `ADMIN_TOKEN`):
+
+1. «Новый черновик» — копия опубликованной версии с новым номером (semver).
+2. Правки сохраняются автоматически; панель «Проверка» показывает замечания трёх видов: структура, замороженные коды (то, что уже опубликовано, нельзя удалить/переименовать — только скрыть), правила опросника.
+3. «Предпросмотр» открывает эталонный опросник на черновике (ссылка содержит токен — не пересылать).
+4. «Опубликовать» — доступно при нуле замечаний. Предыдущая версия уходит в архив; активные сессии пользователей доживают на своей версии, новые начинаются на опубликованной; ENSI видит новую версию в `GET /integration/surveys/current`.
+5. «Карта контента» — markdown со всеми кодами для согласования.
+
+`packages/survey-config/survey.v1.json` — сид первой версии и источник для тестов контрольных чисел; после перехода на конструктор его менять не нужно. Откат = новый черновик из архивной версии (конструктор потребует пометить `deprecated` коды, появившиеся позже).
 
 ## Наблюдаемость
 

@@ -31,10 +31,12 @@ export default defineConfig({
       env: {
         NODE_ENV: "development",
         AUTH_MODE: "dev",
-        CORS_ORIGINS: "http://localhost:5173",
         SWAGGER_ENABLED: "false",
         LOG_LEVEL: "warn",
         AUTO_MIGRATE: "true",
+        ADMIN_TOKEN: process.env.ADMIN_TOKEN ?? "e2e-admin-token-0123456789",
+        INTEGRATION_API_KEY: process.env.INTEGRATION_API_KEY ?? "e2e-integration-key-0123456789",
+        CORS_ORIGINS: "http://localhost:5173,http://localhost:5174",
         DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://idb:idb@localhost:5432/beauty_passport",
       },
     },
@@ -44,6 +46,13 @@ export default defineConfig({
       reuseExistingServer: true,
       timeout: 60_000,
       env: { VITE_API_BASE: "http://localhost:3000" },
+    },
+    {
+      command: "pnpm --filter @idb/admin dev",
+      url: "http://localhost:5174",
+      reuseExistingServer: true,
+      timeout: 60_000,
+      env: { VITE_API_BASE: "http://localhost:3000", VITE_WEB_BASE: "http://localhost:5173" },
     },
   ],
 });

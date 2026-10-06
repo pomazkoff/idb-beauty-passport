@@ -40,6 +40,43 @@ ENSI_TIMEOUT_MS=10000
 ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # опционально, входящий поток
 ```
 
+## Как ENSI забирает опросник (сервисный API)
+
+Авторизация — заголовок `X-Api-Key` (= `INTEGRATION_API_KEY` в env сервиса). Лимит 600 запросов/мин на ключ.
+Конверт `{ data, meta, errors }`. Черновики из конструктора не отдаются — только опубликованные и архивные версии.
+
+| Метод и путь | Что отдаёт |
+|---|---|
+| `GET /api/v1/integration/surveys/current` | **Опубликованный опросник целиком**: оба пола, 5 базовых вопросов с голосами E/P/L/M, ветки Паспорта по полу, категории, психотипы, 17 виджетов с сегментами, тексты экранов, проценты заполненности. `ETag` = checksum версии → `If-None-Match` даёт 304. `meta.version`, `meta.publishedAt`. |
+| `GET /api/v1/integration/surveys` | Список версий (published/archived) с датами. |
+| `GET /api/v1/integration/surveys/{version}` | Опросник конкретной версии — чтобы интерпретировать старые ответы. |
+| `GET /api/v1/integration/customers/{customerId}/profile` | Последний `BeautyProfile` клиента (тот же контракт, что в push) + `meta.ensi` — статус доставки. Pull-альтернатива push-доставке. |
+
+Структура опросника (`data`) — схема `packages/survey-config/src/schema.ts` (Zod) и пример в `survey.v1.json`.
+Ключевые поля для фронтов, которые рисуют опросник сами:
+
+```
+base[]            5 вопросов; text и options — строка/массив или { female, male }
+  options[].vote      голос за психотип (psycho1..3)
+  options[].categoryCode   код категории (вопрос category)
+branches[]        { id, genders[], category, name, draft, questions[] }
+  questions[]     { key, topic, type: single|multi, skippable, draft, text, options[] }
+  options[]       { code, title, subtitle?, exclusive?, deprecated?, tags? }
+psychotypes       { E|P|L|M: { name, description } }
+widgets[]         { n, code, name, segment: "all" | ["E","P","L"...], why }
+completeness      { basePct, perCategoryPct, maxCategories }
+screens, ui       все тексты экранов и кнопок
+```
+
+Правила интерпретации (чтобы внешний рендерер вёл себя как эталонный):
+- `single` нельзя пропустить; `multi` можно (`skippable`), при этом ответ — пустой список.
+- `exclusive: true` снимает остальные выбранные варианты в `multi`.
+- `deprecated: true` — вариант не показывать, но старые ответы с ним валидны.
+- Смена пола сбрасывает все остальные ответы.
+- Психотип: M ≥ 2 → M; иначе максимум E/P/L; ничья или нет голосов → M. Виджеты: `segment` содержит психотип; для M — все не-`all`.
+- Заполненность: 0 до завершения базы, затем `basePct + perCategoryPct × min(пройдено, maxCategories)`.
+- Ответы отправляются в этот сервис (`PUT /api/v1/me/session/answers/{key}`) — он считает результат и пушит профиль в ENSI.
+
 ## Что отправляем
 
 Тело запроса — `toEnsiPayload(BeautyProfile)` (`packages/ensi-client/src/http/mapping.ts`):

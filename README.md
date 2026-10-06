@@ -8,8 +8,10 @@
 
 ```bash
 docker compose up --build
-# web      → http://localhost:8080
+# web      → http://localhost:8080          опросник (эталон / предпросмотр)
+# admin    → http://localhost:8081          конструктор (токен: dev-admin-token-change-me)
 # api      → http://localhost:3000/api/v1  (Swagger: http://localhost:3000/docs)
+# ENSI     → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
 # профили, ушедшие «в ENSI» (FileEnsiSink) → ./.ensi-out/*.json
 ```
 
@@ -20,15 +22,22 @@ pnpm install
 cp .env.example .env            # DATABASE_URL, AUTH_MODE=dev — .env подхватывается автоматически (из корня монорепо)
 pnpm --filter "./packages/*" build
 pnpm db:migrate && pnpm db:seed
-pnpm dev                        # api :3000, worker, web :5173
+pnpm dev                        # api :3000, worker, web :5173, admin :5174
 ```
 
 В dev-режиме (`AUTH_MODE=dev`) пользователь задаётся заголовком `X-Customer-Id`; фронт берёт его из `?customer=` в URL (по умолчанию `demo`).
 
+## Как это устроено
+
+Сервис — источник правды по опроснику и результатам: продакт собирает опросник в **конструкторе** и публикует версию;
+**ENSI** и фронты ЛК забирают опубликованный опросник по сервисному API (`X-Api-Key`) и рисуют его сами (или встраивают
+эталонный web-компонент); ответы приходят в API сервиса, он считает психотип/виджеты/заполненность и **пушит профиль в ENSI**
+через outbox. Подробнее: `docs/ENSI.md`.
+
 ## Что внутри
 
 - 63 вопроса в 10 ветках (3 общие для обоих полов) со стабильными кодами — `docs/content-map.md`
-- Тесты: 99 (контент) + 42 (движок, 100 % строк) + 18 (API, живой PostgreSQL) + 10 (воркер) + 9 (ENSI-адаптер) + 7 (контроллер UI) + 8 e2e (Playwright + axe)
+- Тесты: 99 (контент) + 42 (движок, 100 % строк) + 29 (API, живой PostgreSQL) + 11 (воркер) + 9 (ENSI-адаптер) + 7 (контроллер UI) + e2e (Playwright + axe)
 - Встраиваемый web-компонент `<idb-beauty-quiz>` — 18–20 KB gzip
 
 ## Структура
@@ -36,7 +45,8 @@ pnpm dev                        # api :3000, worker, web :5173
 ```
 apps/api            Fastify REST API, Drizzle, auth, outbox
 apps/worker         доставка профилей в ENSI
-apps/web            React: standalone-страница и web-компонент <idb-beauty-quiz>
+apps/web            React: эталонный опросник (standalone, web-компонент, предпросмотр черновиков)
+apps/admin          конструктор опросника для продакта (версии, редактор, проверка, публикация)
 packages/core       чистый движок: ветвление, психотип, заполненность, виджеты, профиль
 packages/survey-config  survey.v1.json + Zod-схема + валидатор + генератор content-map
 packages/db         Drizzle-схема, SQL-миграции и клиент

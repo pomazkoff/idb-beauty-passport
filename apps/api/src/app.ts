@@ -21,6 +21,7 @@ import { type Authenticator, authPlugin, devAuthenticator, jwtAuthenticator } fr
 import { adminRoutes } from "./routes/admin.js";
 import { eventsRoutes } from "./routes/events.js";
 import { healthRoutes } from "./routes/health.js";
+import { integrationRoutes } from "./routes/integration.js";
 import { sessionRoutes } from "./routes/session.js";
 import { surveyRoutes } from "./routes/survey.js";
 import { SessionService } from "./services/session.service.js";
@@ -61,7 +62,15 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: config.corsOrigins.length ? config.corsOrigins : false,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "X-Customer-Id", "X-Admin-Token", "X-Api-Key", "If-None-Match", "traceparent"],
+    allowedHeaders: [
+      "Authorization",
+      "Content-Type",
+      "X-Customer-Id",
+      "X-Admin-Token",
+      "X-Api-Key",
+      "If-None-Match",
+      "traceparent",
+    ],
     exposedHeaders: ["ETag", "x-request-id"],
   });
   await app.register(rateLimit, {
@@ -135,6 +144,7 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
       await api.register(sessionRoutes, { service, config });
       await api.register(eventsRoutes, { db, config });
       await api.register(adminRoutes, { registry, config });
+      await api.register(integrationRoutes, { registry, service, config });
     },
     { prefix: "/api/v1" },
   );

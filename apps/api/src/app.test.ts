@@ -7,6 +7,7 @@ import { loadConfig } from "./config.js";
 
 const TEST_DB = process.env.TEST_DATABASE_URL ?? "postgresql://idb@localhost:5432/beauty_passport_test";
 const ADMIN = "test-admin-token-0123456789";
+const APIKEY = "test-integration-key-0123456789";
 
 let app: FastifyInstance;
 let close: () => Promise<void>;
@@ -26,6 +27,7 @@ beforeAll(async () => {
     SWAGGER_ENABLED: "true",
     RATE_LIMIT_PER_MINUTE: "1000",
     ADMIN_TOKEN: ADMIN,
+    INTEGRATION_API_KEY: APIKEY,
   });
   app = await buildApp({ config, db, logger: false });
   await app.ready();
@@ -425,5 +427,72 @@ describe("admin: версии опросника", () => {
     expect(r.statusCode).toBe(200);
     expect(r.headers["content-type"]).toContain("text/markdown");
     expect(r.body).toContain("# Карта контента опросника");
+  });
+});
+
+// ── сервисный API для ENSI (этап 10) ─────────────────────────────────
+describe("integration API (X-Api-Key)", () => {
+  const K = { "x-api-key": APIKEY };
+
+  it("без ключа 401, с ключом — текущий опросник целиком с ETag", async () => {
+    expect((await app.inject({ url: "/api/v1/integration/surveys/current" })).statusCode).toBe(401);
+    expect(
+      (await app.inject({ url: "/api/v1/integration/surveys/current", headers: { "x-api-key": "nope" } }))
+        .statusCode,
+    ).toBe(401);
+    const r = await app.inject({ url: "/api/v1/integration/surveys/current", headers: K });
+    expect(r.statusCode).toBe(200);
+    const d = r.json();
+    expect(d.meta.version).toBe(d.data.version);
+    expect(d.data.base).toHaveLength(5);
+    expect(d.data.branches.length).toBeGreaterThanOrEqual(10);
+    expect(d.data.base[1].options.female[0].vote).toBe("E"); // правила голосов на месте
+    expect(d.data.widgets).toHaveLength(17);
+    const etag = r.headers.etag as string;
+    expect(
+      (
+        await app.inject({
+          url: "/api/v1/integration/surveys/current",
+          headers: { ...K, "if-none-match": etag },
+        })
+      ).statusCode,
+    ).toBe(304);
+  });
+
+  it("список версий без черновиков; черновик по версии → 404", async () => {
+    await app.inject({
+      method: "POST",
+      url: "/api/v1/admin/surveys",
+      headers: { "x-admin-token": ADMIN },
+      payload: { version: "9.9.9" },
+    });
+    const list = (await app.inject({ url: "/api/v1/integration/surveys", headers: K })).json().data;
+    expect(list.map((v: { version: string }) => v.version)).not.toContain("9.9.9");
+    expect((await app.inject({ url: "/api/v1/integration/surveys/9.9.9", headers: K })).statusCode).toBe(404);
+    const cur = (await app.inject({ url: "/api/v1/integration/surveys/current", headers: K })).json().meta
+      .version;
+    expect((await app.inject({ url: `/api/v1/integration/surveys/${cur}`, headers: K })).statusCode).toBe(
+      200,
+    );
+    await app.inject({
+      method: "DELETE",
+      url: "/api/v1/admin/surveys/9.9.9",
+      headers: { "x-admin-token": ADMIN },
+    });
+  });
+
+  it("профиль клиента по id; нет профиля → 404", async () => {
+    expect(
+      (await app.inject({ url: "/api/v1/integration/customers/nobody/profile", headers: K })).statusCode,
+    ).toBe(404);
+    await passBase("int-1", "female", ["E", "E", "E"], "face");
+    const r = await app.inject({ url: "/api/v1/integration/customers/int-1/profile", headers: K });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data).toMatchObject({
+      customer_id: "int-1",
+      psychotype: { code: "E" },
+      profile_revision: 1,
+    });
+    expect(r.json().meta.ensi.status).toBe("pending");
   });
 });

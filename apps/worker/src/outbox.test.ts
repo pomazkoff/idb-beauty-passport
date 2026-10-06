@@ -156,14 +156,12 @@ describe("OutboxProcessor", () => {
       .insert(profiles)
       .values({ customerId: "f", sessionId: prof!.sid, revision: 2, payload: { profile_revision: 2 } })
       .returning();
-    await db
-      .insert(ensiOutbox)
-      .values({
-        profileId: p2!.id,
-        customerId: "f",
-        revision: 2,
-        nextAttemptAt: new Date(Date.now() + 60_000),
-      });
+    await db.insert(ensiOutbox).values({
+      profileId: p2!.id,
+      customerId: "f",
+      revision: 2,
+      nextAttemptAt: new Date(Date.now() + 60_000),
+    });
     expect(await p.processBatch()).toMatchObject({ claimed: 1, superseded: 1, sent: 0 });
     expect(sink.calls).toHaveLength(0);
   });

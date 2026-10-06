@@ -227,16 +227,14 @@ export async function enqueueLatest(db: Db, customerId: string): Promise<{ revis
       .where(
         and(eq(ensiOutbox.customerId, customerId), inArray(ensiOutbox.status, ["pending", "failed", "dead"])),
       );
-    await tx
-      .insert(ensiOutbox)
-      .values({
-        profileId: p.id,
-        customerId,
-        revision: p.revision,
-        status: "pending",
-        attempts: 0,
-        nextAttemptAt: new Date(),
-      });
+    await tx.insert(ensiOutbox).values({
+      profileId: p.id,
+      customerId,
+      revision: p.revision,
+      status: "pending",
+      attempts: 0,
+      nextAttemptAt: new Date(),
+    });
   });
   return { revision: p.revision };
 }

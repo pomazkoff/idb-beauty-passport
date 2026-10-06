@@ -18,7 +18,7 @@ import {
   isBranchAnswered,
   markBaseCompleted,
 } from "@idb/core";
-import { type Db, type SessionRow, answers, ensiOutbox, profiles, sessions } from "@idb/db";
+import { type Db, type SessionRow, affectedOf, answers, ensiOutbox, profiles, sessions } from "@idb/db";
 import { type Survey, findBranch } from "@idb/survey-config";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { AppError } from "../errors.js";
@@ -336,6 +336,6 @@ export class SessionService {
         AND NOT EXISTS (SELECT 1 FROM profiles p WHERE p.session_id = s.id)`);
     await this.db.execute(sql`
       DELETE FROM analytics_events WHERE server_ts < now() - make_interval(days => ${retentionDays})`);
-    return Number((r as unknown as { count?: number }).count ?? 0);
+    return affectedOf(r);
   }
 }

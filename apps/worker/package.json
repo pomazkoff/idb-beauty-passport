@@ -12,12 +12,14 @@
     "resync": "tsx src/cli/resync.ts"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@idb/core": "workspace:*",
     "@idb/db": "workspace:*",
     "@idb/ensi-client": "workspace:*",
-    "pino": "^9.5.0",
     "drizzle-orm": "^0.38.3",
-    "postgres": "^3.4.5"
+    "pino": "^9.5.0",
+    "postgres": "^3.4.5",
+    "@idb/outbox": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

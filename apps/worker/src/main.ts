@@ -1,8 +1,8 @@
 /** Воркер доставки профилей в ENSI (ТЗ 10.3). Один или несколько инстансов — безопасно (SKIP LOCKED). */
 import { createDb, loadDotenv } from "@idb/db";
 import { createSinkFromEnv } from "@idb/ensi-client";
+import { OutboxProcessor } from "@idb/outbox";
 import pino from "pino";
-import { OutboxProcessor } from "./outbox.js";
 
 loadDotenv();
 

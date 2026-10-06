@@ -4,7 +4,21 @@
 
 Полное ТЗ — [`docs/TZ.md`](docs/TZ.md). Журнал решений — [`docs/DECISIONS.md`](docs/DECISIONS.md). Эксплуатация — [`docs/RUNBOOK.md`](docs/RUNBOOK.md). Интеграция — [`docs/ENSI.md`](docs/ENSI.md).
 
-## Быстрый старт (Docker)
+## Быстрый старт (только Node, без Docker и PostgreSQL)
+
+```bash
+corepack enable && pnpm install
+pnpm demo
+# опросник     → http://localhost:5173/?customer=demo
+# конструктор  → http://localhost:5174          (токен: dev-admin-token-change-me)
+# API/Swagger  → http://localhost:3000/docs
+# ENSI-API     → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
+# профили «в ENSI» → ./.ensi-out/*.json;  база → ./.pgdata (встроенная PGlite);  pnpm demo --reset — начать заново
+```
+
+Нужен Node ≥ 22. База — встроенный PostgreSQL ([PGlite](https://pglite.dev)) в файлах `./.pgdata`, воркер доставки в ENSI в этом режиме работает внутри API. Тесты (`pnpm test`) тоже идут на PGlite в памяти, если не задан `TEST_DATABASE_URL`.
+
+## Запуск в Docker
 
 ```bash
 docker compose up --build
@@ -58,7 +72,8 @@ docs/source         прототип и исходное ТЗ логики
 
 | Команда | Что делает |
 |---|---|
-| `pnpm test` | unit + contract тесты всех пакетов |
+| `pnpm demo` | всё разом на встроенной базе (PGlite): миграции, демо-данные, api, web, admin; `--reset` стирает базу |
+| `pnpm test` | unit + contract тесты всех пакетов (PGlite в памяти; `TEST_DATABASE_URL` — чтобы гонять на настоящем PostgreSQL) |
 | `pnpm test:e2e` | Playwright-сценарии; сам поднимает api и vite, нужен только postgres (`PW_CHROMIUM_PATH=…`, если браузеры Playwright не установлены) |
 | `pnpm survey:validate` | валидация `survey.v1.json` по схеме и контрольным числам |
 | `pnpm survey:content-map` | перегенерировать `docs/content-map.md` |

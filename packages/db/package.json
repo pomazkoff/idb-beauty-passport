@@ -5,7 +5,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "files": ["dist", "drizzle"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -16,6 +21,7 @@
     "test": "echo 'no tests in @idb/db'"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "drizzle-orm": "^0.38.3",
     "postgres": "^3.4.5"
   },

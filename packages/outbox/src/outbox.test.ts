@@ -1,16 +1,17 @@
-import { createDb, ensiOutbox, profiles, runMigrations, sessions, surveyVersions } from "@idb/db";
+import { createDb, ensiOutbox, migrateHandle, profiles, sessions, surveyVersions } from "@idb/db";
 import { MockEnsiSink } from "@idb/ensi-client";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { OutboxProcessor, backoffMs, enqueueLatest } from "./outbox.js";
+import { OutboxProcessor, backoffMs, enqueueLatest } from "./index.js";
 
-const TEST_DB = process.env.TEST_DATABASE_URL ?? "postgresql://idb@localhost:5432/beauty_passport_test";
+// Без TEST_DATABASE_URL тесты идут на встроенной PGlite в памяти — PostgreSQL не нужен.
+const TEST_DB = process.env.TEST_DATABASE_URL ?? "pglite:memory";
 let db: ReturnType<typeof createDb>["db"];
 let close: () => Promise<void>;
 
 beforeAll(async () => {
-  await runMigrations(TEST_DB);
   const c = createDb(TEST_DB, { max: 4 });
+  await migrateHandle(c);
   db = c.db;
   close = c.close;
   await db

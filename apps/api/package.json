@@ -12,6 +12,7 @@
     "seed": "tsx src/seed.ts"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@fastify/cors": "^10.0.1",
     "@fastify/helmet": "^13.0.0",
     "@fastify/rate-limit": "^10.2.1",
@@ -20,14 +21,16 @@
     "@idb/core": "workspace:*",
     "@idb/db": "workspace:*",
     "@idb/survey-config": "workspace:*",
+    "drizzle-orm": "^0.38.3",
     "fastify": "^5.2.0",
+    "fastify-plugin": "^5.0.1",
     "fastify-type-provider-zod": "^4.0.2",
     "jose": "^5.9.6",
     "pino": "^9.5.0",
-    "zod": "^3.24.1",
-    "drizzle-orm": "^0.38.3",
     "postgres": "^3.4.5",
-    "fastify-plugin": "^5.0.1"
+    "zod": "^3.24.1",
+    "@idb/outbox": "workspace:*",
+    "@idb/ensi-client": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

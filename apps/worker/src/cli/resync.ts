@@ -6,8 +6,8 @@
  * Ставит в очередь последнюю ревизию; воркер отправит.
  */
 import { createDb, ensiOutbox, loadDotenv, profiles } from "@idb/db";
+import { enqueueLatest } from "@idb/outbox";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { enqueueLatest } from "../outbox.js";
 
 loadDotenv();
 

@@ -1,11 +1,12 @@
-import { createDb, runMigrations } from "@idb/db";
+import { createDb, migrateHandle, rowsOf } from "@idb/db";
 import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 
-const TEST_DB = process.env.TEST_DATABASE_URL ?? "postgresql://idb@localhost:5432/beauty_passport_test";
+// Без TEST_DATABASE_URL тесты идут на встроенной PGlite в памяти — PostgreSQL не нужен.
+const TEST_DB = process.env.TEST_DATABASE_URL ?? "pglite:memory";
 const ADMIN = "test-admin-token-0123456789";
 const APIKEY = "test-integration-key-0123456789";
 
@@ -14,8 +15,8 @@ let close: () => Promise<void>;
 let db: ReturnType<typeof createDb>["db"];
 
 beforeAll(async () => {
-  await runMigrations(TEST_DB);
   const conn = createDb(TEST_DB, { max: 4 });
+  await migrateHandle(conn);
   db = conn.db;
   close = conn.close;
   await db.execute(sql`TRUNCATE survey_versions CASCADE`);
@@ -239,10 +240,12 @@ describe("сессия", () => {
   it("outbox: новая ревизия супersedes старую pending", async () => {
     await passBase("c8", "female", ["L", "L", "L"], "hair");
     await passBranch("c8", "female", "hair");
-    const rows = await db.execute(
-      sql`SELECT revision, status FROM ensi_outbox WHERE customer_id = 'c8' ORDER BY revision`,
+    const rows = rowsOf(
+      await db.execute(
+        sql`SELECT revision, status FROM ensi_outbox WHERE customer_id = 'c8' ORDER BY revision`,
+      ),
     );
-    expect([...rows]).toEqual([
+    expect(rows).toEqual([
       { revision: 1, status: "superseded" },
       { revision: 2, status: "pending" },
     ]);
@@ -264,10 +267,10 @@ describe("сессия", () => {
     const r = await call("POST", "/me/session:reset", "c10");
     expect(r.statusCode).toBe(200);
     expect(r.json().data).toMatchObject({ stage: "intro", answers: {} });
-    const rows = await db.execute(
-      sql`SELECT status FROM sessions WHERE customer_id = 'c10' ORDER BY started_at`,
+    const rows = rowsOf<{ status: string }>(
+      await db.execute(sql`SELECT status FROM sessions WHERE customer_id = 'c10' ORDER BY started_at`),
     );
-    expect([...rows].map((x) => (x as { status: string }).status)).toEqual(["archived", "active"]);
+    expect(rows.map((x) => x.status)).toEqual(["archived", "active"]);
     const prof = (await call("GET", "/me/profile", "c10")).json().data;
     expect(prof.profile.profile_revision).toBe(1);
     // новая база даёт ревизию 2
@@ -287,10 +290,10 @@ describe("purgeOld", () => {
       sql`UPDATE sessions SET archived_at = now() - interval '400 days' WHERE status = 'archived'`,
     );
     await app.sessionService.purgeOld(365);
-    const left = await db.execute(
-      sql`SELECT customer_id FROM sessions WHERE status = 'archived' ORDER BY customer_id`,
+    const left = rowsOf<{ customer_id: string }>(
+      await db.execute(sql`SELECT customer_id FROM sessions WHERE status = 'archived' ORDER BY customer_id`),
     );
-    expect([...left].map((r) => (r as { customer_id: string }).customer_id)).toEqual(["r1"]);
+    expect(left.map((r) => r.customer_id)).toEqual(["r1"]);
     const prof = (await call("GET", "/me/profile", "r1")).json().data;
     expect(prof.profile.profile_revision).toBe(1);
   });
@@ -308,11 +311,13 @@ describe("POST /events", () => {
     });
     expect(ok.statusCode).toBe(202);
     expect(ok.json().data.accepted).toBe(2);
-    const rows = await db.execute(
-      sql`SELECT name, session_id FROM analytics_events WHERE customer_id = 'e1' ORDER BY id`,
+    const rows = rowsOf<{ name: string; session_id: string | null }>(
+      await db.execute(
+        sql`SELECT name, session_id FROM analytics_events WHERE customer_id = 'e1' ORDER BY id`,
+      ),
     );
-    expect([...rows]).toHaveLength(2);
-    expect((rows[0] as { session_id: string | null }).session_id).not.toBeNull();
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.session_id).not.toBeNull();
     const bad = await call("POST", "/events", "e1", { events: [{ name: "hack", params: {} }] });
     expect(bad.statusCode).toBe(422);
   });

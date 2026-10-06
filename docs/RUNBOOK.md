@@ -14,6 +14,9 @@ API stateless — масштабируется горизонтально. Во�
 ## Запуск
 
 ```bash
+# Демо/разработка без Docker и PostgreSQL: встроенная база PGlite (./.pgdata), воркер внутри API
+pnpm demo                       # --reset — стереть базу
+
 # Docker Compose (всё сразу: postgres → migrate → api, worker, web)
 docker compose up --build
 
@@ -38,6 +41,7 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 - `SHOW_DRAFT_BADGE=false` в production (плашка «вопрос дописан» — для приёмки контента).
 - `RETENTION_DAYS` — архивные сессии и события старше N дней удаляются раз в сутки (api).
 - `ADMIN_TOKEN` (≥16 символов) — вход в конструктор; пусто = админ-API выключен. Выдавать продакту лично, менять при смене команды.
+- `DATABASE_URL=pglite:<каталог>` (или `pglite:memory`) — встроенная база вместо PostgreSQL: один процесс, без конкурентного доступа; воркер outbox запускается внутри API (`OUTBOX_POLL_INTERVAL_MS`, по умолчанию 2000). **Только для демо, разработки и тестов** — в production нужен PostgreSQL.
 - `INTEGRATION_API_KEY` (≥16 символов) — ключ для ENSI (`X-Api-Key`); пусто = интеграционный API выключен.
 
 ## Встраивание в ЛК
@@ -85,7 +89,7 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 ## Тесты
 
 ```bash
-pnpm test                                  # unit + contract (нужен TEST_DATABASE_URL или postgres на localhost: beauty_passport_test)
+pnpm test                                  # unit + contract; без TEST_DATABASE_URL — на PGlite в памяти, PostgreSQL не нужен
 pnpm test:e2e                              # Playwright; сам поднимает api и vite (DATABASE_URL)
 PW_CHROMIUM_PATH=/path/to/chrome pnpm test:e2e   # если браузеры Playwright не установлены
 ```

@@ -1,0 +1,86 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildProfile > снапшот профиля мужчины P после базы 1`] = `
+{
+  "answers": [
+    {
+      "option_codes": [
+        "male",
+      ],
+      "question_key": "gender",
+      "skipped": false,
+      "stage": "base",
+    },
+    {
+      "option_codes": [
+        "P",
+      ],
+      "question_key": "psycho1",
+      "skipped": false,
+      "stage": "base",
+    },
+    {
+      "option_codes": [
+        "P",
+      ],
+      "question_key": "psycho2",
+      "skipped": false,
+      "stage": "base",
+    },
+    {
+      "option_codes": [
+        "L",
+      ],
+      "question_key": "psycho3",
+      "skipped": false,
+      "stage": "base",
+    },
+    {
+      "option_codes": [
+        "hair",
+      ],
+      "question_key": "category",
+      "skipped": false,
+      "stage": "base",
+    },
+  ],
+  "completed_categories": [],
+  "completeness_pct": 40,
+  "customer_id": "c-1",
+  "gender": "male",
+  "primary_category": "hair",
+  "profile_revision": 2,
+  "psychotype": {
+    "code": "P",
+    "name": "Прагматичный",
+    "votes": {
+      "E": 0,
+      "L": 1,
+      "M": 0,
+      "P": 2,
+    },
+  },
+  "schema_version": "1.0",
+  "survey_version": "1.0.0",
+  "tags": [],
+  "traits": {},
+  "updated_at": "2026-10-06T07:30:00Z",
+  "widgets": {
+    "base": [
+      "favorites",
+      "preferences_quiz",
+      "loyalty_program",
+      "wishlist",
+      "notifications",
+      "order_info",
+    ],
+    "priority": [
+      "ai_assistant",
+      "recommendations_feed",
+      "beauty_calendar",
+      "product_subscription",
+      "expert_selections",
+    ],
+  },
+}
+`;

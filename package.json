@@ -15,8 +15,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "pnpm --filter @idb/web test:e2e",
-    "db:migrate": "pnpm --filter @idb/api prisma:migrate",
-    "db:generate": "pnpm --filter @idb/api prisma:generate",
+    "db:migrate": "pnpm --filter @idb/db db:migrate",
+    "db:generate": "pnpm --filter @idb/db db:generate",
     "db:seed": "pnpm --filter @idb/api seed",
     "survey:validate": "pnpm --filter @idb/survey-config validate",
     "survey:content-map": "pnpm --filter @idb/survey-config content-map",
@@ -30,6 +30,6 @@
     "typescript": "^5.7.2"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@biomejs/biome", "@prisma/client", "@prisma/engines", "esbuild", "prisma"]
+    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild"]
   }
 }

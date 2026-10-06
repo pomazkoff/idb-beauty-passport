@@ -9,8 +9,6 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "test": "vitest run",
-    "prisma:generate": "pnpm --filter @idb/db prisma:generate",
-    "prisma:migrate": "pnpm --filter @idb/db prisma:migrate",
     "seed": "tsx src/seed.ts"
   },
   "dependencies": {
@@ -26,7 +24,10 @@
     "fastify-type-provider-zod": "^4.0.2",
     "jose": "^5.9.6",
     "pino": "^9.5.0",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "drizzle-orm": "^0.38.3",
+    "postgres": "^3.4.5",
+    "fastify-plugin": "^5.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

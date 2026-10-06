@@ -9,4 +9,3 @@ coverage/
 .pgdata/
 playwright-report/
 test-results/
-apps/api/src/generated/

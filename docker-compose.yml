@@ -15,7 +15,7 @@ services:
 
   migrate:
     build: { context: ., dockerfile: docker/api.Dockerfile }
-    command: ["pnpm", "--filter", "@idb/db", "prisma:migrate"]
+    command: ["pnpm", "--filter", "@idb/db", "db:migrate"]
     environment:
       DATABASE_URL: postgresql://idb:idb@postgres:5432/beauty_passport
     depends_on:

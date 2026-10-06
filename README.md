@@ -33,7 +33,7 @@ apps/worker         доставка профилей в ENSI
 apps/web            React: standalone-страница и web-компонент <idb-beauty-quiz>
 packages/core       чистый движок: ветвление, психотип, заполненность, виджеты, профиль
 packages/survey-config  survey.v1.json + Zod-схема + валидатор + генератор content-map
-packages/db         Prisma-схема и клиент
+packages/db         Drizzle-схема, SQL-миграции и клиент
 packages/ensi-client    EnsiSink (mock | file | http) + маппинг профиля
 docs/source         прототип и исходное ТЗ логики
 ```

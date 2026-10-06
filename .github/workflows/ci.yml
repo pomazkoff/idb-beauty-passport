@@ -25,7 +25,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm --filter "./packages/*" build
-      - run: pnpm --filter @idb/db prisma:migrate
+      - run: pnpm --filter @idb/db db:migrate
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter @idb/web build
@@ -50,7 +50,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter "./packages/*" build
-      - run: pnpm --filter @idb/db prisma:migrate
+      - run: pnpm --filter @idb/db db:migrate
       - run: pnpm --filter @idb/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4

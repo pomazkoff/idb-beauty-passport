@@ -2,6 +2,7 @@
 import { type Db, ensiOutbox } from "@idb/db";
 import { count } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
+import fp from "fastify-plugin";
 
 type Hist = { buckets: number[]; counts: number[]; sum: number; total: number };
 const BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5];
@@ -59,7 +60,8 @@ export class Metrics {
   }
 }
 
-export async function metricsRoutes(app: FastifyInstance, opts: { db: Db; metrics: Metrics }) {
+/** fastify-plugin: хук onResponse должен видеть все маршруты, а не только свой контекст. */
+export const metricsRoutes = fp(async (app: FastifyInstance, opts: { db: Db; metrics: Metrics }) => {
   app.addHook("onResponse", (req, reply, done) => {
     const route = req.routeOptions.url ?? "unknown";
     if (route !== "/metrics") opts.metrics.observe(route, reply.statusCode, reply.elapsedTime / 1000);
@@ -68,4 +70,4 @@ export async function metricsRoutes(app: FastifyInstance, opts: { db: Db; metric
   app.get("/metrics", { schema: { tags: ["ops"], summary: "Prometheus-метрики" } }, async (_req, reply) =>
     reply.type("text/plain; version=0.0.4").send(await opts.metrics.render(opts.db)),
   );
-}
+});

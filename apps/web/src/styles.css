@@ -13,11 +13,11 @@
   --brand-tint: #fdebef;
   --ink: #171214;
   --ink-2: #4a4145;
-  --ink-3: #8a7f84;
+  --ink-3: #706468; /* прототип: #8a7f84 (3.8:1); затемнён до AA ≥ 4.6:1 на всех фонах — DECISIONS */
   --milk: #fdfcfb;
   --milk-2: #f7f4f2;
   --line: #e9e2df;
-  --gold: #a8863c;
+  --gold: #85661f; /* прототип: #a8863c (3.1:1 на gold-tint); затемнён до AA 4.7:1 — DECISIONS */
   --gold-tint: #f8f2e6;
   --font-body: "Manrope", system-ui, sans-serif;
   --font-display: "Cormorant Garamond", Georgia, serif;

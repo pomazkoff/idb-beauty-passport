@@ -25,6 +25,12 @@ pnpm dev                        # api :3000, worker, web :5173
 
 В dev-режиме (`AUTH_MODE=dev`) пользователь задаётся заголовком `X-Customer-Id`; фронт берёт его из `?customer=` в URL (по умолчанию `demo`).
 
+## Что внутри
+
+- 63 вопроса в 10 ветках (3 общие для обоих полов) со стабильными кодами — `docs/content-map.md`
+- Тесты: 99 (контент) + 42 (движок, 100 % строк) + 18 (API, живой PostgreSQL) + 10 (воркер) + 9 (ENSI-адаптер) + 7 (контроллер UI) + 8 e2e (Playwright + axe)
+- Встраиваемый web-компонент `<idb-beauty-quiz>` — 18–20 KB gzip
+
 ## Структура
 
 ```
@@ -43,7 +49,7 @@ docs/source         прототип и исходное ТЗ логики
 | Команда | Что делает |
 |---|---|
 | `pnpm test` | unit + contract тесты всех пакетов |
-| `pnpm test:e2e` | Playwright-сценарии (нужны поднятые api и postgres) |
+| `pnpm test:e2e` | Playwright-сценарии; сам поднимает api и vite, нужен только postgres (`PW_CHROMIUM_PATH=…`, если браузеры Playwright не установлены) |
 | `pnpm survey:validate` | валидация `survey.v1.json` по схеме и контрольным числам |
 | `pnpm survey:content-map` | перегенерировать `docs/content-map.md` |
 | `pnpm survey:extract` | снапшот контента из прототипа → `docs/source/prototype-content.snapshot.json` |

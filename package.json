@@ -13,7 +13,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "turbo run test --concurrency=1",
     "test:e2e": "pnpm --filter @idb/web test:e2e",
     "db:migrate": "pnpm --filter @idb/db db:migrate",
     "db:generate": "pnpm --filter @idb/db db:generate",

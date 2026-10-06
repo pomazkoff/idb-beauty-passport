@@ -15,6 +15,7 @@ jobs:
           --health-cmd "pg_isready -U idb" --health-interval 5s --health-timeout 3s --health-retries 10
     env:
       DATABASE_URL: postgresql://idb:idb@localhost:5432/beauty_passport
+      TEST_DATABASE_URL: postgresql://idb:idb@localhost:5432/beauty_passport
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +54,7 @@ jobs:
       - run: pnpm --filter @idb/db db:migrate
       - run: pnpm --filter @idb/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+        env: { CI: "true" }
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: apps/web/playwright-report }

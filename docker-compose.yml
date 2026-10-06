@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: idb
+      POSTGRES_PASSWORD: idb
+      POSTGRES_DB: beauty_passport
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idb -d beauty_passport"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    command: ["pnpm", "--filter", "@idb/db", "prisma:migrate"]
+    environment:
+      DATABASE_URL: postgresql://idb:idb@postgres:5432/beauty_passport
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://idb:idb@postgres:5432/beauty_passport
+      AUTH_MODE: dev
+      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+      SWAGGER_ENABLED: "true"
+    ports: ["3000:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    build: { context: ., dockerfile: docker/worker.Dockerfile }
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://idb:idb@postgres:5432/beauty_passport
+      ENSI_SINK: file
+      ENSI_FILE_DIR: /out
+    volumes: [".ensi-out:/out"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ., dockerfile: docker/web.Dockerfile }
+    environment:
+      VITE_API_BASE: http://localhost:3000
+    ports: ["8080:80"]
+    depends_on: [api]
+
+volumes:
+  pgdata:

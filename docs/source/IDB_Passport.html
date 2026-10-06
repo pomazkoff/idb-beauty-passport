@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#FDFCFB">
+<title>Опросник ЛК · ИЛЬ ДЕ БОТЭ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#E30138; --brand-deep:#B00029; --brand-tint:#FDEBEF;
+  --ink:#171214; --ink-2:#4A4145; --ink-3:#8A7F84;
+  --milk:#FDFCFB; --milk-2:#F7F4F2; --line:#E9E2DF;
+  --gold:#A8863C; --gold-tint:#F8F2E6;
+}
+html{color-scheme:only light;background:var(--milk)}
+@media (prefers-color-scheme:dark){html,body{background:#FDFCFB!important;color:#171214!important}}
+body{font-family:'Manrope',sans-serif;background:var(--milk);color:var(--ink);line-height:1.6;font-size:15px}
+.wrap{max-width:680px;margin:0 auto;padding:0 20px 60px}
+
+header{border-bottom:1px solid var(--line);padding:16px 0;margin-bottom:8px;
+  position:sticky;top:0;background:rgba(253,252,251,.96);backdrop-filter:blur(10px);z-index:20}
+.hdr{display:flex;justify-content:space-between;align-items:center;max-width:680px;margin:0 auto;padding:0 20px}
+.logo{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;letter-spacing:.14em}
+.logo b{color:var(--brand);font-weight:600}
+.hdr-tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+.progress{height:2px;background:var(--line);margin-top:12px;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--brand);width:0;transition:width .35s ease;border-radius:2px}
+.stepmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:8px;
+  letter-spacing:.04em}
+
+.screen{padding-top:28px;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--brand);
+  font-weight:600;margin-bottom:10px}
+h1{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,6vw,44px);font-weight:500;
+  line-height:1.08;margin-bottom:14px}
+h1 em{font-style:italic;color:var(--brand)}
+.lead{font-size:15px;color:var(--ink-2);font-weight:300;margin-bottom:26px}
+
+.qtext{font-family:'Cormorant Garamond',serif;font-size:25px;font-weight:600;
+  line-height:1.25;margin-bottom:6px}
+.qhint{font-size:12.5px;color:var(--ink-3);margin-bottom:18px}
+.draft{display:inline-block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--gold-tint);color:var(--gold);padding:2px 8px;border-radius:10px;
+  font-weight:600;margin-bottom:10px}
+
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);
+  border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s;
+  text-align:left;font:inherit;color:inherit;width:100%}
+.opt:hover{border-color:var(--brand);background:var(--brand-tint)}
+.opt:active{transform:scale(.995)}
+.opt.on{border-color:var(--brand);background:var(--brand-tint)}
+.mark{flex:0 0 18px;height:18px;margin-top:2px;border:1.5px solid var(--ink-3);
+  border-radius:50%;position:relative;transition:border-color .15s}
+.multi .mark{border-radius:5px}
+.opt.on .mark{border-color:var(--brand);background:var(--brand)}
+.opt.on .mark::after{content:'';position:absolute;inset:0;display:grid;place-items:center;
+  color:#fff;font-size:11px;font-weight:700}
+.opt.on .mark::after{content:'✓';line-height:15px;text-align:center}
+.olabel{flex:1}
+.otitle{font-size:14.5px;font-weight:500;line-height:1.4}
+.osub{font-size:12px;color:var(--ink-3);margin-top:2px}
+
+.nav{display:flex;gap:10px;margin-top:24px;align-items:center}
+.btn{border:none;border-radius:10px;padding:13px 26px;font:inherit;font-weight:600;
+  font-size:14px;cursor:pointer;transition:background .15s,opacity .15s}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-deep)}
+.btn-primary:disabled{background:var(--line);color:var(--ink-3);cursor:not-allowed}
+.btn-ghost{background:none;color:var(--ink-3);padding:13px 6px}
+.btn-ghost:hover{color:var(--ink)}
+.skip{margin-left:auto;font-size:12.5px;color:var(--ink-3);background:none;border:none;
+  cursor:pointer;font:inherit;text-decoration:underline;text-underline-offset:3px}
+.skip:hover{color:var(--brand)}
+
+/* ── RESULT ── */
+.rcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:14px}
+.rtype{background:linear-gradient(135deg,#fff,var(--brand-tint));border-color:var(--brand)}
+.rtype-name{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:var(--brand);
+  line-height:1.1;margin:4px 0 8px}
+.rtype-desc{font-size:14px;color:var(--ink-2);font-weight:300}
+.rlabel{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+
+.prof{display:flex;flex-direction:column;gap:0}
+.prow{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:11px 0;
+  border-bottom:1px solid var(--line);font-size:13.5px;align-items:start}
+.prow:last-child{border-bottom:none}
+.pk{color:var(--ink-3);font-size:12px;line-height:1.5}
+.pv{font-weight:500;line-height:1.5}
+
+.wgrid{display:flex;flex-direction:column;gap:9px}
+.w{display:flex;gap:13px;align-items:flex-start;background:#fff;border:1px solid var(--line);
+  border-radius:12px;padding:14px 16px}
+.w.prio{border-color:var(--gold);background:linear-gradient(135deg,#fff,var(--gold-tint))}
+.wnum{flex:0 0 26px;height:26px;border-radius:50%;background:var(--milk-2);color:var(--ink-3);
+  display:grid;place-items:center;font-size:12px;font-weight:600}
+.w.prio .wnum{background:var(--gold);color:#fff}
+.wname{font-size:14.5px;font-weight:600;line-height:1.35}
+.wwhy{font-size:12.5px;color:var(--ink-2);font-weight:300;margin-top:3px;line-height:1.5}
+.sect{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:600;margin:26px 0 12px}
+
+.note{background:var(--milk-2);border-radius:12px;padding:16px 18px;font-size:12.5px;
+  color:var(--ink-2);font-weight:300;line-height:1.6;margin-top:18px}
+.note b{font-weight:600;color:var(--ink)}
+
+/* ── Индикатор заполненности ── */
+.meter{background:var(--gold-tint);border:1px solid #E8DCC4;border-radius:14px;
+  padding:16px 18px;margin-bottom:16px}
+.meter-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.meter-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gold);font-weight:600}
+.meter-val{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);font-weight:600}
+.meter-bar{height:4px;background:#E8DCC4;border-radius:3px;overflow:hidden}
+.meter-fill{height:100%;background:linear-gradient(90deg,var(--gold),#C9A96E);
+  border-radius:3px;transition:width .5s ease}
+.meter-next{font-size:12px;color:var(--ink-2);margin-top:9px;font-weight:300}
+
+/* ── Анонс Паспорта ── */
+.announce{background:linear-gradient(135deg,#fff,var(--brand-tint));
+  border:1px solid var(--brand);border-radius:16px;padding:24px;margin:26px 0 18px}
+.ann-eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--brand);font-weight:600;margin-bottom:8px}
+.ann-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;
+  line-height:1.15;margin-bottom:10px}
+.ann-text{font-size:14px;color:var(--ink-2);font-weight:300;line-height:1.65}
+.ann-bullets{margin-top:14px;display:flex;flex-direction:column;gap:7px}
+.ann-b{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink)}
+.ann-dot{flex:0 0 6px;height:6px;border-radius:50%;background:var(--brand);margin-top:8px}
+.ann-foot{font-size:11.5px;color:var(--ink-3);margin-top:10px}
+@media(max-width:520px){.prow{grid-template-columns:1fr;gap:2px}}
+</style>
+</head>
+<body>
+
+<header><div class="hdr">
+  <span class="logo">ИЛЬ <b>ДЕ</b> БОТЭ</span>
+  <span class="hdr-tag">Опросник ЛК</span>
+</div></header>
+
+<div class="wrap">
+  <div id="bar" style="display:none">
+    <div class="progress"><div class="progress-fill" id="pf"></div></div>
+    <div class="stepmeta"><span id="stepName"></span><span id="stepNum"></span></div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  ДЕРЕВО ВОПРОСОВ  (из файла «Вопросы_для_ЛК.xlsx»)
+//  E = эмоциональный · P = прагматичный · L = премиальный · M = смешанный
+// ═══════════════════════════════════════════════════════════
+const T = {
+  // ── Первый уровень ──────────────────────────────────────
+  q1:{key:'gender',block:'Уровень 1 · О вас',
+     text:'Укажите пол',type:'single',
+     opts:[{t:'Женский',v:'ж'},{t:'Мужской',v:'м'}]},
+
+  q2:{key:'psycho1',block:'Уровень 1 · О вас',
+     text:'Что для Вас косметика и парфюмерия — прежде всего?',type:'single',
+     byGender:{
+       'ж':[{t:'Вдохновение, радость от перемен, способ мгновенно поднять настроение',v:'E'},
+            {t:'Умный инструмент для решения конкретных задач, осознанный подход к красоте',v:'P'},
+            {t:'Погружение в мир роскоши, способ наслаждаться и чувствовать себя шикарно',v:'L'},
+            {t:'Ни один вариант не подходит / подходит несколько',v:'M'}],
+       'м':[{t:'Широкий выбор интересных средств, среди которых всегда можно найти что-то своё',v:'E'},
+            {t:'Привычный инструмент для ухоженности и свежести каждый день',v:'P'},
+            {t:'Стильный аксессуар, подчёркивающий уверенность и статус',v:'L'},
+            {t:'Ни один вариант не подходит / подходит несколько',v:'M'}]}},
+
+  q3:{key:'psycho2',block:'Уровень 1 · О вас',
+     text:'Какое главное ощущение Вы хотите получить от нового средства или аромата?',type:'single',
+     byGender:{
+       'ж':[{t:'Восторг',s:'радоваться новому продукту, открывать для себя что-то новое',v:'E'},
+            {t:'Надёжность и качество',s:'ощущать уверенность и видеть результат',v:'P'},
+            {t:'Премиальность и роскошь',s:'наслаждаться каждой деталью',v:'L'},
+            {t:'Ни один вариант не подходит / подходит несколько',v:'M'}],
+       'м':[{t:'Приятное удивление',s:'открывать для себя что-то новое, интересное',v:'E'},
+            {t:'Надёжность и качество',s:'убеждаться в правильности выбора',v:'P'},
+            {t:'Премиальность и статус',s:'видеть и чувствовать непревзойдённое качество',v:'L'},
+            {t:'Ни один вариант не подходит / подходит несколько',v:'M'}]}},
+
+  q4:{key:'psycho3',block:'Уровень 1 · О вас',
+     text:'Что для Вас важно при выборе косметики и парфюмерии?',type:'single',
+     byGender:{
+       'ж':[{t:'Новизна и тренды',s:'инновационные ингредиенты и необычные формулы, модные новинки, продукты из соцсетей, особенные фишки и сочетания',v:'E'},
+            {t:'Надёжность и качество, проверенные временем',s:'имя и история бренда, клинически доказанный результат, рекомендации специалистов',v:'P'},
+            {t:'Премиальное качество',s:'ценные ингредиенты, роскошная упаковка, изысканные отдушки, выбор известных личностей',v:'L'}],
+       'м':[{t:'Новизна и тренды',s:'инновационные ингредиенты и формулы, популярные новинки, продукты из соцсетей, необычные фишки или упаковка',v:'E'},
+            {t:'Привычность и надёжность, проверенные временем',s:'доказанная результативность, контроль качества, рекомендации специалистов',v:'P'},
+            {t:'Премиальные и статусные продукты',s:'эксклюзивные сочетания, стильная упаковка, приятные отдушки и текстуры, выбор известных личностей',v:'L'}]}},
+
+  q5:{key:'category',block:'Уровень 1 · О вас',
+     text:'Представьте, что в каждой категории есть интересные продукты и выгодные акции. Какую Вы рассмотрели бы в первую очередь?',
+     type:'single',
+     byGender:{
+       'ж':[{t:'Уход за лицом',v:'face'},{t:'Уход за телом',v:'body'},
+            {t:'Уход за волосами',v:'hair'},{t:'Солнечная линия',v:'sun'},
+            {t:'Макияж',v:'makeup'},{t:'Парфюмерия',v:'perfume'},
+            {t:'Парфюмерия для дома',v:'home'}],
+       'м':[{t:'Уход за лицом и бритьё',v:'face'},{t:'Уход за телом',v:'body'},
+            {t:'Уход за волосами',v:'hair'},{t:'Солнечная линия',v:'sun'},
+            {t:'Парфюмерия',v:'perfume'},{t:'Парфюмерия для дома',v:'home'}]}}
+};
+
+// ── Второй уровень ────────────────────────────────────────
+// draft:true — вопрос дописан по теме из файла (в файле только «что узнаем»)
+const L2 = {
+'ж_face':{name:'Уход за лицом',qs:[
+ {k:'Тип кожи',text:'На каких участках лица появляется жирный блеск в течение дня?',type:'single',
+  opts:[{t:'На всём лице',s:'жирная'},{t:'На Т-зоне — лоб, нос, подбородок',s:'комбинированная'},
+        {t:'Жирный блеск не появляется, кожа матовая',s:'сухая'},{t:'Не обращала внимание',s:'нормальная'}]},
+ {k:'Состояния и задачи',text:'Какие признаки Вы замечаете чаще всего?',type:'multi',
+  opts:[{t:'Шелушение, стянутость, особенно после умывания',s:'обезвоженная'},
+        {t:'Воспаления, чёрные точки, расширенные поры',s:'проблемная'},
+        {t:'Пигментные пятна, серый цвет лица, тусклость',s:'недостаток сияния'},
+        {t:'Мимические морщины, заломы, потеря упругости',s:'увядающая'},
+        {t:'Всё нормально, ничего не беспокоит'}]},
+ {k:'Рутина',text:'Какие средства ухода Вы используете ежедневно или еженедельно?',type:'multi',
+  opts:[{t:'Средство для очищения — пенка, гель, мыло, молочко'},{t:'Тоник, лосьон, софтнер'},
+        {t:'Сыворотка или бустер'},{t:'Крем для лица универсальный'},{t:'Крем для лица дневной'},
+        {t:'Крем для лица ночной'},{t:'Крем для области вокруг глаз'},{t:'Крем для шеи и декольте'},
+        {t:'Скраб, пилинг, гель-скатка'},{t:'Маска очищающая'},{t:'Маски ухаживающие, в том числе ночные'},
+        {t:'Маски для очищения пор, в том числе глиняные'},{t:'Специальные средства — ампулы'},
+        {t:'UV-защита (SPF)'}]},
+ {k:'Очищение',text:'Как Вы предпочитаете очищать кожу утром и вечером?',type:'single',
+  opts:[{t:'С водой',s:'мыло, гель, пенка'},{t:'Без воды',s:'молочко, крем, мицеллярная вода'}]},
+ {k:'Факторы влияния',text:'Какие факторы влияют на состояние Вашей кожи сейчас?',type:'multi',
+  opts:[{t:'Плохая экология, городская среда'},{t:'Жёсткая вода'},{t:'Вредные привычки'},
+        {t:'Недостаток сна'},{t:'Гормональная перестройка, в том числе беременность'},
+        {t:'Много времени под активным солнцем'},{t:'Сухой воздух — отопление, кондиционер'}]},
+ {k:'Текстуры',text:'Какие текстуры кремов для лица Вы предпочитаете?',type:'single',
+  opts:[{t:'Максимально лёгкие, мгновенно впитываются',s:'гелевые или как вода'},
+        {t:'Средние, смягчающие',s:'крем-гель, сорбе'},
+        {t:'Насыщенные, питательные',s:'плотный крем, баттер'}]},
+ {k:'Гаджеты и аксессуары',text:'Какими инструментами ухода за лицом Вы пользуетесь?',type:'multi',
+  opts:[{t:'Массажный роллер'},{t:'Роллер с микроиглами'},{t:'Микротоковый аппарат'},
+        {t:'LED-маска'},{t:'Щёточка или спонж для умывания'},{t:'Не использую ничего подобного'}]}
+]},
+
+'м_face':{name:'Уход за лицом и бритьё',qs:[
+ {k:'Тип кожи',text:'Выберите описание, наиболее близкое к Вашей коже',type:'single',
+  opts:[{t:'Кожа очень жирная, постоянно блестит на всех участках, крупные поры'},
+        {t:'Иногда появляется жирный блеск, в основном на лбу и возле носа, немного расширенных пор'},
+        {t:'Жирного блеска не замечаю, на поры внимания никогда не обращал'}]},
+ {k:'Состояния и задачи',text:'С чем сталкивается Ваша кожа?',type:'multi',
+  opts:[{t:'Частые воспаления, чёрные точки'},{t:'Неровный цвет лица, тусклый или тёмные участки'},
+        {t:'Сухость, стянутость, дискомфорт',s:'особенно после умывания или бритья'},
+        {t:'Признаки старения — морщины, потеря упругости'}]},
+ {k:'Рутина',text:'Какие средства Вы используете ежедневно или еженедельно?',type:'multi',
+  opts:[{t:'Средство для умывания'},{t:'Тоник или увлажняющий лосьон'},{t:'Сыворотка для лица'},
+        {t:'Крем для лица'},{t:'Крем для глаз'},{t:'Скраб или пилинг'},
+        {t:'Очищающая маска'},{t:'Увлажняющая маска'}]},
+ {k:'Бритьё',text:'Какие средства и способы бритья Вы используете?',type:'multi',
+  opts:[{t:'Гель для бритья'},{t:'Пена для бритья'},{t:'Лосьон после бритья'},{t:'Крем после бритья'},
+        {t:'Бреюсь станком'},{t:'Использую электробритву'},{t:'Ношу бороду, хожу к барберу'},
+        {t:'Ношу бороду, использую домашние средства ухода'}]},
+ {k:'Факторы влияния',text:'Какие ещё факторы влияют на состояние Вашей кожи?',type:'multi',
+  opts:[{t:'Плохая экология'},{t:'Сложные условия труда',s:'вредное производство, загрязнения, солнце'},
+        {t:'Не высыпаюсь'},{t:'Раздражение после бритья, вросшие волоски, воспаления'}]}
+]},
+
+'ж_hair':{name:'Уход за волосами',qs:[
+ {k:'Тип кожи головы',text:'Выберите тип кожи головы, наиболее похожий на Ваш',type:'single',
+  opts:[{t:'Жирная кожа головы, в том числе на висках и затылке'},
+        {t:'Жирная в районе пробора, на остальных участках нормальная'},
+        {t:'Нормальная, нет проблем ни с жирностью, ни с сухостью'},
+        {t:'Сухая кожа головы, есть дискомфорт'}]},
+ {k:'Состояние волос',text:'Выберите состояние волос, наиболее близкое к Вашему',type:'single',
+  opts:[{t:'Жирнятся у корней и очень сухие ближе к концам'},
+        {t:'Сухие и ломкие по всей длине'},
+        {t:'По длине нормальные, но на концах заметно сечение'},
+        {t:'Гладкие и блестящие по всей длине, проблем нет'}]},
+ {k:'Особые задачи',text:'Что ещё беспокоит Вас в состоянии волос и кожи головы?',type:'multi',
+  opts:[{t:'Жирная перхоть, крупными хлопьями'},{t:'Сухая перхоть, словно пыль'},
+        {t:'Сильное выпадение волос'},{t:'Не хватает объёма'},{t:'Не хватает длины'},
+        {t:'Обесцвечиваю волосы, из-за этого они стали ломкими'},
+        {t:'Окрашиваю волосы, цвет плохо держится'},{t:'Кожа головы очень чувствительная'},
+        {t:'Волосы длинные и сильно путаются при расчёсывании'},{t:'Ничего из перечисленного, всё хорошо'}]},
+ {k:'Частота мытья',text:'Как часто Вы моете голову?',type:'single',
+  opts:[{t:'Каждый день'},{t:'Через день'},{t:'Раз в 3 дня и реже'}]},
+ {k:'Рутина',text:'Отметьте средства, которые Вы используете',type:'multi',
+  opts:[{t:'Шампунь'},{t:'Бальзам'},{t:'Маска для кожи головы'},{t:'Маска для волос'},
+        {t:'Скраб для кожи головы'},{t:'Несмываемый уход',s:'крем для волос, сухое масло'},
+        {t:'Спрей для лёгкого расчёсывания'},{t:'Средство для кончиков волос'},
+        {t:'Сухой шампунь'}]},
+ {k:'Аксессуары',text:'Какие аксессуары и инструменты Вы используете?',type:'multi',
+  opts:[{t:'Расчёска из натуральных материалов',s:'дерево, щетина'},
+        {t:'Расчёска из искусственных материалов',s:'пластик, металл'},
+        {t:'Расчёска с эффектом распутывания',s:'антистатический пластик'},
+        {t:'Фен для сушки волос'},{t:'Утюжок или плойка'},{t:'Бигуди'}]},
+ {k:'Средства укладки',text:'Какие средства для укладки Вы обычно используете?',type:'multi',
+  opts:[{t:'Лак для волос'},{t:'Мусс или пенка для укладки'},{t:'Гель'},
+        {t:'Пудра для прикорневого объёма'},{t:'Моделирующий воск'},
+        {t:'Спрей для объёма, текстурайзер'},{t:'Спрей-блеск или сухое масло'},
+        {t:'Термозащита'},{t:'Не использую средства для укладки'}]}
+]},
+
+'м_hair':{name:'Уход за волосами',qs:[
+ {k:'Тип кожи головы',text:'Какое определение больше соответствует Вашей коже головы?',type:'single',
+  opts:[{t:'Кожа головы очень жирная'},{t:'Кожа головы скорее жирная'},
+        {t:'Нормальная кожа головы'},{t:'Скорее сухая, чем нормальная'}]},
+ {k:'Особые задачи',text:'С какими особенностями Вы сталкиваетесь?',type:'multi',
+  opts:[{t:'Жирная перхоть'},{t:'Сухая перхоть'},{t:'Выпадение волос'},{t:'Чувствительная кожа головы'}]},
+ {k:'Частота мытья',text:'Как часто Вы моете голову?',type:'single',
+  opts:[{t:'Каждый день'},{t:'Через день'},{t:'Раз в 3 дня и реже'}]},
+ {k:'Рутина',text:'Какие средства ухода за кожей головы и волосами Вы используете?',type:'multi',
+  opts:[{t:'Гель для тела и волос 2 в 1'},{t:'Шампунь для волос'},
+        {t:'Бальзам для волос'},{t:'Маска для волос'}]},
+ {k:'Укладка',text:'Укладываете ли Вы волосы?',type:'single',
+  opts:[{t:'Нет, просто расчёсываюсь'},{t:'Укладываю без горячих инструментов'},
+        {t:'Укладываю при помощи горячих инструментов',s:'фен, щипцы'}]},
+ {k:'Средства укладки',text:'Какие средства для укладки Вы обычно используете?',type:'multi',
+  opts:[{t:'Гель'},{t:'Пудра для прикорневого объёма'},{t:'Моделирующий воск'},
+        {t:'Не использую средства для укладки'}]}
+]},
+
+'ж_body':{name:'Уход за телом',draft:true,qs:[
+ {k:'Тип кожи',text:'Как Вы описали бы кожу тела?',type:'single',
+  opts:[{t:'Сухая, склонная к шелушению'},{t:'Нормальная, без особенностей'},
+        {t:'Чувствительная, реагирует на средства'},{t:'Комбинированная — где-то сухо, где-то нормально'}]},
+ {k:'Состояния и задачи',text:'Что Вы хотели бы улучшить?',type:'multi',
+  opts:[{t:'Упругость и тонус'},{t:'Неровности, «апельсиновая корка»'},{t:'Растяжки'},
+        {t:'Пигментация или неровный тон'},{t:'Сухость и стянутость'},{t:'Ничего не беспокоит'}]},
+ {k:'Корректирующий уход',text:'Пользуетесь ли Вы специальным корректирующим уходом?',type:'multi',
+  opts:[{t:'Антицеллюлитные средства'},{t:'Укрепляющие и подтягивающие кремы'},
+        {t:'Средства от растяжек'},{t:'Массажные масла'},{t:'Нет, не пользуюсь'}]},
+ {k:'Ежедневная рутина',text:'Какие средства Вы используете регулярно?',type:'multi',
+  opts:[{t:'Гель или пенка для душа'},{t:'Скраб для тела'},{t:'Молочко или лосьон для тела'},
+        {t:'Питательный крем или баттер'},{t:'Дезодорант или антиперспирант'},
+        {t:'Крем для рук'},{t:'Крем для ног'}]},
+ {k:'Аксессуары',text:'Что Вы используете во время ухода?',type:'multi',
+  opts:[{t:'Мочалка или щётка для тела'},{t:'Массажная рукавица'},{t:'Роликовый массажёр'},
+        {t:'Ничего из перечисленного'}]},
+ {k:'Образ жизни',text:'Что из этого про Вас?',type:'multi',
+  opts:[{t:'Регулярно занимаюсь спортом'},{t:'Хожу на массаж или СПА'},
+        {t:'Часто бываю в бассейне или сауне'},{t:'Много времени сидя, за компьютером'},
+        {t:'Ничего из перечисленного'}]}
+]},
+
+'м_body':{name:'Уход за телом',draft:true,qs:[
+ {k:'Тип кожи',text:'Как Вы описали бы кожу тела?',type:'single',
+  opts:[{t:'Сухая, бывает шелушение'},{t:'Нормальная'},{t:'Чувствительная, бывает раздражение'}]},
+ {k:'Состояния и задачи',text:'Что из этого Вам знакомо?',type:'multi',
+  opts:[{t:'Сухость после душа'},{t:'Раздражение от одежды или бритья тела'},
+        {t:'Повышенная потливость'},{t:'Огрубевшая кожа на локтях, коленях, стопах'},
+        {t:'Ничего не беспокоит'}]},
+ {k:'Ежедневная гигиена',text:'Какие средства Вы используете регулярно?',type:'multi',
+  opts:[{t:'Гель для душа'},{t:'Мыло'},{t:'Скраб для тела'},{t:'Лосьон или крем для тела'},
+        {t:'Дезодорант или антиперспирант'},{t:'Крем для рук'},{t:'Крем для ног'}]},
+ {k:'Образ жизни',text:'Что из этого про Вас?',type:'multi',
+  opts:[{t:'Регулярно занимаюсь спортом'},{t:'Работа связана с физической нагрузкой'},
+        {t:'Часто бываю в бассейне или сауне'},{t:'Много времени сидя, за компьютером'},
+        {t:'Ничего из перечисленного'}]}
+]},
+
+'ж_sun':{name:'Солнечная линия',draft:true,qs:[
+ {k:'Фототип',text:'Как Ваша кожа реагирует на солнце?',type:'single',
+  opts:[{t:'Быстро обгораю, почти не загораю',s:'светлая кожа, часто веснушки'},
+        {t:'Сначала обгораю, потом загораю'},{t:'Загораю легко, обгораю редко'},
+        {t:'Практически никогда не обгораю, загар ровный'}]},
+ {k:'Особенности',text:'Есть ли что-то, что важно учесть?',type:'multi',
+  opts:[{t:'Есть пигментные пятна'},{t:'Есть родинки, за которыми слежу'},
+        {t:'Кожа реагирует на солнце покраснением или зудом'},
+        {t:'Принимаю средства, повышающие чувствительность к солнцу'},{t:'Ничего из перечисленного'}]},
+ {k:'Условия защиты',text:'В каких ситуациях Вам нужна защита от солнца?',type:'multi',
+  opts:[{t:'Каждый день в городе'},{t:'На пляже и в отпуске'},{t:'В горах, на лыжах'},
+        {t:'Во время спорта на улице'},{t:'Только когда очень солнечно'}]},
+ {k:'Рутина',text:'Какие солнцезащитные средства Вы используете?',type:'multi',
+  opts:[{t:'Крем для лица с SPF'},{t:'Средство для тела с SPF'},{t:'Стик или бальзам для губ с SPF'},
+        {t:'Средство после загара'},{t:'Дневной крем с SPF в составе'},{t:'Не использую'}]},
+ {k:'Текстуры',text:'Какие текстуры солнцезащитных средств Вы предпочитаете?',type:'single',
+  opts:[{t:'Лёгкий флюид или спрей'},{t:'Крем средней плотности'},
+        {t:'Насыщенный крем или масло'},{t:'Не имеет значения'}]},
+ {k:'Автозагар',text:'Пользуетесь ли Вы средствами для автозагара?',type:'single',
+  opts:[{t:'Да, регулярно'},{t:'Иногда, перед событиями'},{t:'Нет, но интересно попробовать'},{t:'Нет и не планирую'}]}
+]},
+
+'ж_makeup':{name:'Макияж',draft:true,qs:[
+ {k:'Активность',text:'Как часто Вы делаете макияж?',type:'single',
+  opts:[{t:'Каждый день, полный макияж'},{t:'Каждый день, но лёгкий'},
+        {t:'Несколько раз в неделю'},{t:'Только по особым случаям'}]},
+ {k:'Предпочитаемые зоны',text:'Каким зонам Вы уделяете больше всего внимания?',type:'multi',
+  opts:[{t:'Тон и кожа'},{t:'Глаза'},{t:'Брови'},{t:'Губы'},{t:'Скулы и румяна'}]},
+ {k:'Рутина',text:'Какие средства входят в Ваш обычный макияж?',type:'multi',
+  opts:[{t:'База под макияж'},{t:'Тональное средство'},{t:'Консилер'},{t:'Пудра'},
+        {t:'Румяна'},{t:'Бронзер или скульптор'},{t:'Хайлайтер'},{t:'Тени'},
+        {t:'Подводка или карандаш'},{t:'Тушь'},{t:'Средства для бровей'},
+        {t:'Помада'},{t:'Блеск или тинт'},{t:'Фиксирующий спрей'}]},
+ {k:'Интересы',text:'Какие средства Вам интересно попробовать?',type:'multi',
+  opts:[{t:'Новые форматы тона — кушоны, флюиды'},{t:'Кремовые румяна и скульпторы'},
+        {t:'Цветные подводки и тени'},{t:'Стойкие тинты для губ'},
+        {t:'Средства для ламинирования бровей'},{t:'Пока ничего нового не хочу'}]},
+ {k:'Текстуры и эффекты',text:'Какой финиш Вы предпочитаете?',type:'multi',
+  opts:[{t:'Матовый'},{t:'Естественное сияние'},{t:'Плотное покрытие'},
+        {t:'Лёгкое, почти незаметное покрытие'},{t:'Максимальная стойкость'}]},
+ {k:'Аксессуары',text:'Чем Вы наносите макияж?',type:'multi',
+  opts:[{t:'Кисти'},{t:'Спонжи и бьюти-блендеры'},{t:'Пальцами'},{t:'Аппликаторами из набора'}]},
+ {k:'Снятие макияжа',text:'Чем Вы снимаете макияж?',type:'multi',
+  opts:[{t:'Мицеллярная вода'},{t:'Гидрофильное масло'},{t:'Молочко или сливки'},
+        {t:'Двухфазное средство для глаз'},{t:'Салфетки'}]},
+ {k:'Оттенки',text:'Какая гамма Вам ближе?',type:'single',
+  opts:[{t:'Нюд и бежевые оттенки'},{t:'Тёплые — коралл, персик, терракота'},
+        {t:'Холодные — розовый, ягодный, сливовый'},{t:'Яркие и насыщенные'},{t:'Люблю разное'}]}
+]},
+
+'ж_perfume':{name:'Парфюмерия',draft:true,qs:[
+ {k:'Частота',text:'Как часто Вы пользуетесь парфюмерией?',type:'single',
+  opts:[{t:'Каждый день'},{t:'Несколько раз в неделю'},{t:'По особым случаям'},{t:'Редко'}]},
+ {k:'Коллекция',text:'Сколько ароматов сейчас в Вашей коллекции?',type:'single',
+  opts:[{t:'Один любимый'},{t:'2–3 аромата'},{t:'4–7 ароматов'},{t:'Больше семи'}]},
+ {k:'Рутина',text:'Какую парфюмированную продукцию Вы используете?',type:'multi',
+  opts:[{t:'Парфюмерная вода'},{t:'Туалетная вода'},{t:'Духи'},{t:'Парфюмированный гель для душа'},
+        {t:'Парфюмированное молочко для тела'},{t:'Парфюмированный дезодорант'},
+        {t:'Ароматы для волос'}]},
+ {k:'Интенсивность',text:'Какое звучание Вы предпочитаете?',type:'single',
+  opts:[{t:'Лёгкое, едва уловимое'},{t:'Умеренное, для близкого круга'},
+        {t:'Заметное, со шлейфом'},{t:'Зависит от повода'}]},
+ {k:'Семейства',text:'Какие ароматы Вам нравятся?',type:'multi',
+  opts:[{t:'Цветочные'},{t:'Восточные и пряные'},{t:'Древесные'},{t:'Свежие и цитрусовые'},
+        {t:'Фужерные'},{t:'Шипровые'},{t:'Гурманские, сладкие'},{t:'Акватические'}]},
+ {k:'Тип аромата',text:'Что Вам ближе?',type:'single',
+  opts:[{t:'Классика, проверенные временем ароматы'},{t:'Новинки известных брендов'},
+        {t:'Нишевая парфюмерия'},{t:'Люблю всё и сразу'}]}
+]},
+
+'ж_home':{name:'Парфюмерия для дома',draft:true,qs:[
+ {k:'Зоны',text:'Где Вам важен аромат?',type:'multi',
+  opts:[{t:'Гостиная'},{t:'Спальня'},{t:'Ванная'},{t:'Прихожая'},{t:'Рабочее место'},
+        {t:'Пока нигде, но интересно попробовать'}]},
+ {k:'Настроение',text:'Какое настроение Вы хотите создать?',type:'multi',
+  opts:[{t:'Уют и тепло'},{t:'Свежесть и чистота'},{t:'Расслабление перед сном'},
+        {t:'Бодрость и концентрация'},{t:'Роскошь и торжественность'}]},
+ {k:'Формат',text:'Какие форматы Вам удобны?',type:'multi',
+  opts:[{t:'Аромадиффузор с палочками'},{t:'Свеча'},{t:'Спрей для дома'},
+        {t:'Ароматы для текстиля'},{t:'Электрический диффузор'},{t:'Саше'}]}
+]}
+};
+// мужские версии солнца и парфюмерии — те же вопросы
+L2['м_sun']  = {...L2['ж_sun']};
+L2['м_perfume'] = {...L2['ж_perfume']};
+L2['м_home'] = {...L2['ж_home']};
+
+// ── Психотипы ─────────────────────────────────────────────
+const TYPES = {
+ E:{name:'Эмоциональный',
+    desc:'Процесс важнее результата. Вы получаете удовольствие от выбора, распаковки, тестирования. Ищете новые эмоции, текстуры, ароматы и истории, любите пробовать разное и смешивать бренды.'},
+ P:{name:'Прагматичный',
+    desc:'Результат важнее процесса. Вы покупаете, чтобы закрыть конкретную потребность. Избирательны, пользуетесь проверенными средствами известных брендов, цените чёткую информацию по существу.'},
+ L:{name:'Премиальный',
+    desc:'Важен индивидуальный подход. Вы покупаете лучшее, потому что это подчёркивает статус и вкус. Значение имеют не только свойства, но и история бренда, дизайн флакона, лимитированность и эксклюзивность обслуживания.'},
+ M:{name:'Смешанный',
+    desc:'Ваши предпочтения не укладываются в одну категорию — в разных ситуациях Вам важно разное. Показываем полный спектр возможностей и не ограничиваем выбор.'}
+};
+
+// ── Виджеты ЛК ────────────────────────────────────────────
+const W = [
+ {n:1, name:'Любимые товары и бренды', seg:'all',  why:'Быстрый доступ к тому, что Вы уже выбрали'},
+ {n:2, name:'Опросник о предпочтениях', seg:'all', why:'Профиль можно дополнить в любой момент — рекомендации станут точнее'},
+ {n:3, name:'Расширенная программа лояльности', seg:'all', why:'Статус, бонусы и привилегии в одном месте'},
+ {n:4, name:'ИИ-ассистент', seg:'P',   why:'Отвечает по существу и подбирает средства под конкретную задачу'},
+ {n:5, name:'Новости и блог', seg:'E', why:'Новинки, тренды и истории брендов — то, что интересно открывать'},
+ {n:6, name:'Запись на сервисы красоты', seg:'EL', why:'Кабины красоты и консультации специалистов по онлайн-записи'},
+ {n:7, name:'Управление виш-листом', seg:'all', why:'Сохраняйте желаемое и получайте уведомления о скидках'},
+ {n:8, name:'Лента с рекомендациями', seg:'EP', why:'Персональная подборка на основе Вашего профиля'},
+ {n:9, name:'Общение с комьюнити', seg:'E', why:'Обсуждения, отзывы и обмен опытом с другими покупателями'},
+ {n:10,name:'Геймификация', seg:'E',   why:'Достижения и прогресс — интересный способ открывать новое'},
+ {n:11,name:'Ваш календарь красоты', seg:'PL', why:'Напоминания о рутине и о том, когда пора обновить средство'},
+ {n:12,name:'Важные уведомления', seg:'all', why:'Напоминания, акции и просьбы оставить отзыв'},
+ {n:13,name:'Подписка на товар', seg:'PL', why:'Регулярная доставка привычных средств без повторных заказов'},
+ {n:14,name:'Закрытые предпродажи и распродажи', seg:'EL', why:'Ранний доступ к новинкам и специальным предложениям'},
+ {n:15,name:'Персональные экспертные подборки', seg:'PL', why:'Готовые схемы ухода, собранные под Ваш профиль'},
+ {n:16,name:'Бьюти-боксы', seg:'E',    why:'Наборы для знакомства с новыми средствами'},
+ {n:17,name:'Полная информация о заказе', seg:'all', why:'Состав, статус и история заказов без обращения в поддержку'}
+];
+
+// ═══════════════════════════════════════════════════════════
+//  ДВИЖОК  ·  два этапа: база → паспорт
+// ═══════════════════════════════════════════════════════════
+const S = {phase:'intro', step:0, answers:{}, queue:[], multiSel:new Set(),
+           doneCats:[], activeCat:null};
+const app = document.getElementById('app');
+const bar = document.getElementById('bar');
+
+const BASE = [T.q1,T.q2,T.q3,T.q4,T.q5];
+
+function G(){ const i=S.answers.gender; return i===undefined?null:T.q1.opts[i].v; }
+function CAT(){ const i=S.answers.category; if(i===undefined) return null;
+  const o=optsFor(T.q5); return o[i]?o[i].v:null; }
+function optsFor(q){
+  if(q.byGender){ const g = S.answers.gender===undefined ? 'ж' : T.q1.opts[S.answers.gender].v;
+    return q.byGender[g] || q.byGender['ж']; }
+  return q.opts;
+}
+function catName(v){ const o=optsFor(T.q5).find(x=>x.v===v); return o?o.t:v; }
+
+function buildQueue(){
+  if(S.phase==='base'){ S.queue = BASE; return; }
+  if(S.phase==='passport'){
+    const key = G()+'_'+S.activeCat, blk = L2[key];
+    S.queue = blk ? blk.qs.map((qq,i)=>({...qq, key:key+'_'+i,
+      block:'Паспорт · '+blk.name, draft:blk.draft})) : [];
+  }
+}
+
+function completeness(){
+  let pct = S.phase==='intro' ? 0 : 40;
+  pct += Math.min(S.doneCats.length,3)*20;
+  return Math.min(pct,100);
+}
+
+// ── Рендер вопроса ────────────────────────────────────────
+function renderQuestion(){
+  const q = S.queue[S.step];
+  const opts = optsFor(q);
+  const isMulti = q.type === 'multi';
+  bar.style.display='block';
+  document.getElementById('pf').style.width = ((S.step)/S.queue.length*100)+'%';
+  document.getElementById('stepName').textContent = q.block || '';
+  document.getElementById('stepNum').textContent = (S.step+1)+' / '+S.queue.length;
+
+  const saved = S.answers[q.key];
+  S.multiSel = new Set(isMulti && Array.isArray(saved) ? saved : []);
+
+  app.innerHTML = `
+   <div class="screen">
+     ${q.draft?'<div class="draft">вопрос дописан</div>':''}
+     <div class="qtext">${q.text}</div>
+     <div class="qhint">${isMulti?'Можно выбрать несколько вариантов':'Выберите один вариант'}</div>
+     <div class="opts ${isMulti?'multi':''}">
+       ${opts.map((o,i)=>`
+         <button class="opt ${isMulti && S.multiSel.has(i) ? 'on':''} ${!isMulti && saved===i?'on':''}" data-i="${i}">
+           <span class="mark"></span>
+           <span class="olabel"><span class="otitle">${o.t}</span>
+           ${o.s?`<span class="osub">${o.s}</span>`:''}</span>
+         </button>`).join('')}
+     </div>
+     <div class="nav">
+       ${S.step>0?'<button class="btn btn-ghost" id="back">Назад</button>':''}
+       ${isMulti?`<button class="btn btn-primary" id="next" ${S.multiSel.size?'':'disabled'}>Далее</button>`:''}
+       ${isMulti?'':'<span style="font-size:12.5px;color:var(--ink-3)">Нажмите на вариант, чтобы продолжить</span>'}
+       ${isMulti?'<button class="skip" id="skip">Пропустить</button>':''}
+     </div>
+   </div>`;
+
+  document.querySelectorAll('.opt').forEach(b=>{
+    b.onclick = ()=>{
+      const i = +b.dataset.i;
+      if(isMulti){
+        S.multiSel.has(i) ? S.multiSel.delete(i) : S.multiSel.add(i);
+        b.classList.toggle('on');
+        document.getElementById('next').disabled = !S.multiSel.size;
+      } else {
+        const changed = S.answers[q.key] !== i;
+        S.answers[q.key] = i;
+        if(changed && q.key==='gender'){
+          Object.keys(S.answers).forEach(k=>{ if(k.includes('_')) delete S.answers[k]; });
+          delete S.answers.category; S.doneCats=[];
+        }
+        advance();
+      }
+    };
+  });
+  const nx=document.getElementById('next');
+  if(nx) nx.onclick=()=>{ S.answers[q.key]=[...S.multiSel]; advance(); };
+  const sk=document.getElementById('skip');
+  if(sk) sk.onclick=()=>{ S.answers[q.key]=[]; advance(); };
+  const bk=document.getElementById('back');
+  if(bk) bk.onclick=()=>{ S.step--; render(); up(); };
+}
+
+function advance(){
+  S.step++;
+  if(S.step >= S.queue.length){
+    if(S.phase==='base'){ S.phase='result1'; }
+    else if(S.phase==='passport'){
+      if(!S.doneCats.includes(S.activeCat)) S.doneCats.push(S.activeCat);
+      S.phase='result2';
+    }
+  }
+  render(); up();
+}
+function up(){ window.scrollTo({top:0,behavior:'smooth'}); }
+
+// ── Психотип ──────────────────────────────────────────────
+function psychotype(){
+  const votes=[S.answers.psycho1,S.answers.psycho2,S.answers.psycho3]
+    .map((i,n)=>{ if(i===undefined) return null;
+      return optsFor([T.q2,T.q3,T.q4][n])[i].v; }).filter(Boolean);
+  const c={E:0,P:0,L:0,M:0}; votes.forEach(v=>c[v]++);
+  if(c.M>=2) return 'M';
+  const max=Math.max(c.E,c.P,c.L);
+  const lead=['E','P','L'].filter(k=>c[k]===max);
+  if(max===0||lead.length>1) return 'M';
+  return lead[0];
+}
+
+// ── Блоки результата ──────────────────────────────────────
+function widgetHTML(t){
+  const prio=W.filter(w=>w.seg!=='all'&&(t==='M'?true:w.seg.includes(t)));
+  const base=W.filter(w=>w.seg==='all');
+  return `
+   <div class="sect">Ваши виджеты · подобраны по типу</div>
+   <div class="wgrid">
+     ${prio.map(w=>`<div class="w prio"><div class="wnum">${w.n}</div>
+       <div><div class="wname">${w.name}</div><div class="wwhy">${w.why}</div></div></div>`).join('')}
+   </div>
+   <div class="sect">Базовые виджеты · для всех</div>
+   <div class="wgrid">
+     ${base.map(w=>`<div class="w"><div class="wnum">${w.n}</div>
+       <div><div class="wname">${w.name}</div><div class="wwhy">${w.why}</div></div></div>`).join('')}
+   </div>`;
+}
+
+function meterHTML(){
+  const pct=completeness();
+  return `
+   <div class="meter">
+     <div class="meter-row">
+       <span class="meter-label">Профиль заполнен</span>
+       <span class="meter-val">${pct}%</span>
+     </div>
+     <div class="meter-bar"><div class="meter-fill" style="width:${pct}%"></div></div>
+     ${pct<100?`<div class="meter-next">${pct===40
+        ? 'Соберите Паспорт красоты — рекомендации станут точнее'
+        : 'Добавьте ещё категорию, чтобы профиль стал полным'}</div>`:
+        '<div class="meter-next">Профиль полный — рекомендации максимально точные</div>'}
+   </div>`;
+}
+
+function profileRows(catV){
+  const key=G()+'_'+catV, blk=L2[key]; if(!blk) return '';
+  const rows=[];
+  blk.qs.forEach((qq,i)=>{
+    const a=S.answers[key+'_'+i];
+    if(a===undefined||(Array.isArray(a)&&!a.length)) return;
+    const vals=Array.isArray(a)?a.map(x=>qq.opts[x]):[qq.opts[a]];
+    rows.push([qq.k, vals.map(o=>o.s?`${o.t} (${o.s})`:o.t).join(' · ')]);
+  });
+  if(!rows.length) return '';
+  return `<div class="sect">Паспорт · ${blk.name}</div>
+   <div class="rcard prof">
+     ${rows.map(r=>`<div class="prow"><div class="pk">${r[0]}</div><div class="pv">${r[1]}</div></div>`).join('')}
+   </div>`;
+}
+
+// ── Экраны ────────────────────────────────────────────────
+function renderIntro(){
+  bar.style.display='none';
+  app.innerHTML=`
+   <div class="screen">
+     <div class="eyebrow">Персональный профиль</div>
+     <h1>Ваш профиль <em>красоты</em></h1>
+     <p class="lead">Пять коротких вопросов — и личный кабинет настроится под Вас.
+       Займёт около минуты.</p>
+     <div class="rcard" style="padding:18px 20px">
+       <div class="rlabel">Что Вы получите сразу</div>
+       <div style="font-size:13.5px;color:var(--ink-2);font-weight:300;margin-top:8px;line-height:1.65">
+         Виджеты кабинета соберутся под Ваш тип, а подборки и уведомления
+         станут отвечать Вашим интересам. Более детальный Паспорт красоты
+         можно собрать позже — по желанию.
+       </div>
+     </div>
+     <div class="nav"><button class="btn btn-primary" id="go">Начать</button></div>
+   </div>`;
+  document.getElementById('go').onclick=()=>{S.phase='base';S.step=0;render()};
+}
+
+function renderResult1(){
+  bar.style.display='none';
+  const t=psychotype(), cat=CAT();
+  app.innerHTML=`
+   <div class="screen">
+     <div class="eyebrow">Кабинет настроен</div>
+     <h1>Готово!</h1>
+     <p class="lead">Ваш кабинет собран и уже работает. Виджеты ниже — активны.</p>
+
+     ${meterHTML()}
+
+     <div class="rcard rtype">
+       <div class="rlabel">Ваш тип</div>
+       <div class="rtype-name">${TYPES[t].name}</div>
+       <div class="rtype-desc">${TYPES[t].desc}</div>
+     </div>
+
+     ${widgetHTML(t)}
+
+     <div class="announce">
+       <div class="ann-eyebrow">Следующий шаг · по желанию</div>
+       <div class="ann-title">Соберите свой Паспорт красоты</div>
+       <div class="ann-text">
+         Вы можете собрать Паспорт красоты, чтобы получать более точные
+         персональные рекомендации по товарам и целым системам ухода.
+         Мы подберём средства под Ваш тип кожи, состояние волос и привычки —
+         а не просто по популярности.
+       </div>
+       <div class="ann-bullets">
+         <div class="ann-b"><span class="ann-dot"></span>Персональная система ухода вместо отдельных товаров</div>
+         <div class="ann-b"><span class="ann-dot"></span>Подборки с учётом Ваших задач и текстур</div>
+         <div class="ann-b"><span class="ann-dot"></span>Напоминания, когда пора обновить средство</div>
+       </div>
+       <div class="nav" style="margin-top:18px">
+         <button class="btn btn-primary" id="pass">Собрать Паспорт · ${catName(cat)}</button>
+         <button class="btn btn-ghost" id="later">Позже</button>
+       </div>
+       <div class="ann-foot">Около 2 минут · можно прервать в любой момент</div>
+     </div>
+
+     <div class="note">
+       <b>Как считается тип.</b> Голоса по вопросам 2–4 суммируются: два и более
+       совпадения дают тип, разнобой или два ответа «не подходит» — смешанный.
+       Смешанному показываем полный набор виджетов.
+     </div>
+     <div class="nav"><button class="btn btn-ghost" id="again">Пройти заново</button></div>
+   </div>`;
+  document.getElementById('pass').onclick=()=>{
+    S.activeCat=cat; S.phase='passport'; S.step=0; render(); up(); };
+  document.getElementById('later').onclick=()=>{
+    document.querySelector('.announce').innerHTML=
+      `<div class="ann-title" style="margin:0">Хорошо, вернёмся к этому позже</div>
+       <div class="ann-text" style="margin-top:6px">Паспорт красоты всегда доступен
+       в личном кабинете — в разделе «Мой профиль красоты».</div>
+       <div class="nav" style="margin-top:14px">
+         <button class="btn btn-primary" id="pass2">Всё-таки собрать</button></div>`;
+    document.getElementById('pass2').onclick=()=>{
+      S.activeCat=cat; S.phase='passport'; S.step=0; render(); up(); };
+  };
+  document.getElementById('again').onclick=()=>{
+    S.answers={}; S.doneCats=[]; S.phase='intro'; S.step=0; render(); up(); };
+}
+
+function renderResult2(){
+  bar.style.display='none';
+  const t=psychotype();
+  const rest=optsFor(T.q5).filter(o=>!S.doneCats.includes(o.v));
+  app.innerHTML=`
+   <div class="screen">
+     <div class="eyebrow">Паспорт обновлён</div>
+     <h1>Рекомендации <em>уточнены</em></h1>
+     <p class="lead">Теперь мы подбираем не отдельные товары, а систему ухода под Ваш профиль.</p>
+
+     ${meterHTML()}
+
+     <div class="rcard rtype">
+       <div class="rlabel">Ваш тип</div>
+       <div class="rtype-name">${TYPES[t].name}</div>
+       <div class="rtype-desc">${TYPES[t].desc}</div>
+     </div>
+
+     ${S.doneCats.map(c=>profileRows(c)).join('')}
+
+     ${widgetHTML(t)}
+
+     ${rest.length?`
+     <div class="announce">
+       <div class="ann-eyebrow">Расширить паспорт</div>
+       <div class="ann-title">Добавьте ещё категорию</div>
+       <div class="ann-text">Чем полнее профиль, тем точнее подборки.
+         Осталось категорий: ${rest.length}.</div>
+       <div class="opts" style="margin-top:14px">
+         ${rest.map(o=>`<button class="opt" data-c="${o.v}">
+           <span class="mark"></span><span class="olabel"><span class="otitle">${o.t}</span></span>
+         </button>`).join('')}
+       </div>
+     </div>`:''}
+
+     <div class="nav"><button class="btn btn-ghost" id="again">Пройти заново</button></div>
+   </div>`;
+  document.querySelectorAll('[data-c]').forEach(b=>{
+    b.onclick=()=>{ S.activeCat=b.dataset.c; S.phase='passport'; S.step=0; render(); up(); };
+  });
+  document.getElementById('again').onclick=()=>{
+    S.answers={}; S.doneCats=[]; S.phase='intro'; S.step=0; render(); up(); };
+}
+
+function render(){
+  if(S.phase==='intro')   return renderIntro();
+  if(S.phase==='result1') return renderResult1();
+  if(S.phase==='result2') return renderResult2();
+  buildQueue();
+  if(S.step>=S.queue.length){ advance(); return; }
+  renderQuestion();
+}
+
+render();
+</script>
+</body>
+</html>

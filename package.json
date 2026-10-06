@@ -1,0 +1,41 @@
+{
+  "name": "idb-beauty-passport",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ИЛЬ ДЕ БОТЭ · Опросник ЛК / Паспорт красоты — веб-сервис с API и интеграцией в ENSI",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter @idb/web test:e2e",
+    "db:migrate": "pnpm --filter @idb/api prisma:migrate",
+    "db:generate": "pnpm --filter @idb/api prisma:generate",
+    "db:seed": "pnpm --filter @idb/api seed",
+    "survey:validate": "pnpm --filter @idb/survey-config validate",
+    "survey:content-map": "pnpm --filter @idb/survey-config content-map",
+    "survey:extract": "tsx scripts/extract-prototype.ts",
+    "ensi:resync": "pnpm --filter @idb/worker resync"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+*.log
+.env
+.env.*.local
+.ensi-out/
+.pgdata/
+playwright-report/
+test-results/
+apps/api/src/generated/

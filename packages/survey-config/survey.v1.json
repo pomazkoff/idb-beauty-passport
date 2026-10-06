@@ -1,0 +1,2517 @@
+{
+  "version": "1.0.0",
+  "locale": "ru-RU",
+  "genders": [
+    {
+      "code": "female",
+      "label": "Женский"
+    },
+    {
+      "code": "male",
+      "label": "Мужской"
+    }
+  ],
+  "base": [
+    {
+      "key": "gender",
+      "block": "Уровень 1 · О вас",
+      "type": "single",
+      "skippable": false,
+      "text": "Укажите пол",
+      "options": [
+        {
+          "code": "female",
+          "title": "Женский"
+        },
+        {
+          "code": "male",
+          "title": "Мужской"
+        }
+      ]
+    },
+    {
+      "key": "psycho1",
+      "block": "Уровень 1 · О вас",
+      "type": "single",
+      "skippable": false,
+      "text": "Что для Вас косметика и парфюмерия — прежде всего?",
+      "options": {
+        "female": [
+          {
+            "code": "E",
+            "title": "Вдохновение, радость от перемен, способ мгновенно поднять настроение",
+            "vote": "E"
+          },
+          {
+            "code": "P",
+            "title": "Умный инструмент для решения конкретных задач, осознанный подход к красоте",
+            "vote": "P"
+          },
+          {
+            "code": "L",
+            "title": "Погружение в мир роскоши, способ наслаждаться и чувствовать себя шикарно",
+            "vote": "L"
+          },
+          {
+            "code": "M",
+            "title": "Ни один вариант не подходит / подходит несколько",
+            "vote": "M"
+          }
+        ],
+        "male": [
+          {
+            "code": "E",
+            "title": "Широкий выбор интересных средств, среди которых всегда можно найти что-то своё",
+            "vote": "E"
+          },
+          {
+            "code": "P",
+            "title": "Привычный инструмент для ухоженности и свежести каждый день",
+            "vote": "P"
+          },
+          {
+            "code": "L",
+            "title": "Стильный аксессуар, подчёркивающий уверенность и статус",
+            "vote": "L"
+          },
+          {
+            "code": "M",
+            "title": "Ни один вариант не подходит / подходит несколько",
+            "vote": "M"
+          }
+        ]
+      }
+    },
+    {
+      "key": "psycho2",
+      "block": "Уровень 1 · О вас",
+      "type": "single",
+      "skippable": false,
+      "text": "Какое главное ощущение Вы хотите получить от нового средства или аромата?",
+      "options": {
+        "female": [
+          {
+            "code": "E",
+            "title": "Восторг",
+            "subtitle": "радоваться новому продукту, открывать для себя что-то новое",
+            "vote": "E"
+          },
+          {
+            "code": "P",
+            "title": "Надёжность и качество",
+            "subtitle": "ощущать уверенность и видеть результат",
+            "vote": "P"
+          },
+          {
+            "code": "L",
+            "title": "Премиальность и роскошь",
+            "subtitle": "наслаждаться каждой деталью",
+            "vote": "L"
+          },
+          {
+            "code": "M",
+            "title": "Ни один вариант не подходит / подходит несколько",
+            "vote": "M"
+          }
+        ],
+        "male": [
+          {
+            "code": "E",
+            "title": "Приятное удивление",
+            "subtitle": "открывать для себя что-то новое, интересное",
+            "vote": "E"
+          },
+          {
+            "code": "P",
+            "title": "Надёжность и качество",
+            "subtitle": "убеждаться в правильности выбора",
+            "vote": "P"
+          },
+          {
+            "code": "L",
+            "title": "Премиальность и статус",
+            "subtitle": "видеть и чувствовать непревзойдённое качество",
+            "vote": "L"
+          },
+          {
+            "code": "M",
+            "title": "Ни один вариант не подходит / подходит несколько",
+            "vote": "M"
+          }
+        ]
+      }
+    },
+    {
+      "key": "psycho3",
+      "block": "Уровень 1 · О вас",
+      "type": "single",
+      "skippable": false,
+      "text": "Что для Вас важно при выборе косметики и парфюмерии?",
+      "options": {
+        "female": [
+          {
+            "code": "E",
+            "title": "Новизна и тренды",
+            "subtitle": "инновационные ингредиенты и необычные формулы, модные новинки, продукты из соцсетей, особенные фишки и сочетания",
+            "vote": "E"
+          },
+          {
+            "code": "P",
+            "title": "Надёжность и качество, проверенные временем",
+            "subtitle": "имя и история бренда, клинически доказанный результат, рекомендации специалистов",
+            "vote": "P"
+          },
+          {
+            "code": "L",
+            "title": "Премиальное качество",
+            "subtitle": "ценные ингредиенты, роскошная упаковка, изысканные отдушки, выбор известных личностей",
+            "vote": "L"
+          }
+        ],
+        "male": [
+          {
+            "code": "E",
+            "title": "Новизна и тренды",
+            "subtitle": "инновационные ингредиенты и формулы, популярные новинки, продукты из соцсетей, необычные фишки или упаковка",
+            "vote": "E"
+          },
+          {
+            "code": "P",
+            "title": "Привычность и надёжность, проверенные временем",
+            "subtitle": "доказанная результативность, контроль качества, рекомендации специалистов",
+            "vote": "P"
+          },
+          {
+            "code": "L",
+            "title": "Премиальные и статусные продукты",
+            "subtitle": "эксклюзивные сочетания, стильная упаковка, приятные отдушки и текстуры, выбор известных личностей",
+            "vote": "L"
+          }
+        ]
+      }
+    },
+    {
+      "key": "category",
+      "block": "Уровень 1 · О вас",
+      "type": "single",
+      "skippable": false,
+      "text": "Представьте, что в каждой категории есть интересные продукты и выгодные акции. Какую Вы рассмотрели бы в первую очередь?",
+      "options": {
+        "female": [
+          {
+            "code": "face",
+            "title": "Уход за лицом",
+            "categoryCode": "face"
+          },
+          {
+            "code": "body",
+            "title": "Уход за телом",
+            "categoryCode": "body"
+          },
+          {
+            "code": "hair",
+            "title": "Уход за волосами",
+            "categoryCode": "hair"
+          },
+          {
+            "code": "sun",
+            "title": "Солнечная линия",
+            "categoryCode": "sun"
+          },
+          {
+            "code": "makeup",
+            "title": "Макияж",
+            "categoryCode": "makeup"
+          },
+          {
+            "code": "perfume",
+            "title": "Парфюмерия",
+            "categoryCode": "perfume"
+          },
+          {
+            "code": "home",
+            "title": "Парфюмерия для дома",
+            "categoryCode": "home"
+          }
+        ],
+        "male": [
+          {
+            "code": "face",
+            "title": "Уход за лицом и бритьё",
+            "categoryCode": "face"
+          },
+          {
+            "code": "body",
+            "title": "Уход за телом",
+            "categoryCode": "body"
+          },
+          {
+            "code": "hair",
+            "title": "Уход за волосами",
+            "categoryCode": "hair"
+          },
+          {
+            "code": "sun",
+            "title": "Солнечная линия",
+            "categoryCode": "sun"
+          },
+          {
+            "code": "perfume",
+            "title": "Парфюмерия",
+            "categoryCode": "perfume"
+          },
+          {
+            "code": "home",
+            "title": "Парфюмерия для дома",
+            "categoryCode": "home"
+          }
+        ]
+      }
+    }
+  ],
+  "categories": [
+    {
+      "code": "face",
+      "label": {
+        "female": "Уход за лицом",
+        "male": "Уход за лицом и бритьё"
+      }
+    },
+    {
+      "code": "body",
+      "label": {
+        "female": "Уход за телом",
+        "male": "Уход за телом"
+      }
+    },
+    {
+      "code": "hair",
+      "label": {
+        "female": "Уход за волосами",
+        "male": "Уход за волосами"
+      }
+    },
+    {
+      "code": "sun",
+      "label": {
+        "female": "Солнечная линия",
+        "male": "Солнечная линия"
+      }
+    },
+    {
+      "code": "makeup",
+      "label": {
+        "female": "Макияж"
+      }
+    },
+    {
+      "code": "perfume",
+      "label": {
+        "female": "Парфюмерия",
+        "male": "Парфюмерия"
+      }
+    },
+    {
+      "code": "home",
+      "label": {
+        "female": "Парфюмерия для дома",
+        "male": "Парфюмерия для дома"
+      }
+    }
+  ],
+  "branches": [
+    {
+      "id": "female_face",
+      "genders": ["female"],
+      "category": "face",
+      "name": "Уход за лицом",
+      "questions": [
+        {
+          "key": "face_skin_type",
+          "block": "Паспорт · Уход за лицом",
+          "topic": "Тип кожи",
+          "type": "single",
+          "skippable": false,
+          "text": "На каких участках лица появляется жирный блеск в течение дня?",
+          "options": [
+            {
+              "code": "oily",
+              "title": "На всём лице",
+              "subtitle": "жирная",
+              "tags": ["skin_type:oily"]
+            },
+            {
+              "code": "combination",
+              "title": "На Т-зоне — лоб, нос, подбородок",
+              "subtitle": "комбинированная",
+              "tags": ["skin_type:combination"]
+            },
+            {
+              "code": "dry",
+              "title": "Жирный блеск не появляется, кожа матовая",
+              "subtitle": "сухая",
+              "tags": ["skin_type:dry"]
+            },
+            {
+              "code": "normal",
+              "title": "Не обращала внимание",
+              "subtitle": "нормальная",
+              "tags": ["skin_type:normal"]
+            }
+          ]
+        },
+        {
+          "key": "face_concerns",
+          "block": "Паспорт · Уход за лицом",
+          "topic": "Состояния и задачи",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие признаки Вы замечаете чаще всего?",
+          "options": [
+            {
+              "code": "dehydrated",
+              "title": "Шелушение, стянутость, особенно после умывания",
+              "subtitle": "обезвоженная",
+              "tags": ["skin_state:dehydrated"]
+            },
+            {
+              "code": "problem",
+              "title": "Воспаления, чёрные точки, расширенные поры",
+              "subtitle": "проблемная",
+              "tags": ["skin_state:problem"]
+            },
+            {
+              "code": "dull",
+              "title": "Пигментные пятна, серый цвет лица, тусклость",
+              "subtitle": "недостаток сияния",
+              "tags": ["skin_state:dull"]
+            },
+            {
+              "code": "aging",
+              "title": "Мимические морщины, заломы, потеря упругости",
+              "subtitle": "увядающая",
+              "tags": ["skin_state:aging"]
+            },
+            {
+              "code": "none",
+              "title": "Всё нормально, ничего не беспокоит",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "face_routine",
+          "block": "Паспорт · Уход за лицом",
+          "topic": "Рутина",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие средства ухода Вы используете ежедневно или еженедельно?",
+          "options": [
+            {
+              "code": "cleanser",
+              "title": "Средство для очищения — пенка, гель, мыло, молочко"
+            },
+            {
+              "code": "toner",
+              "title": "Тоник, лосьон, софтнер"
+            },
+            {
+              "code": "serum",
+              "title": "Сыворотка или бустер"
+            },
+            {
+              "code": "cream_universal",
+              "title": "Крем для лица универсальный"
+            },
+            {
+              "code": "cream_day",
+              "title": "Крем для лица дневной"
+            },
+            {
+              "code": "cream_night",
+              "title": "Крем для лица ночной"
+            },
+            {
+              "code": "eye_cream",
+              "title": "Крем для области вокруг глаз"
+            },
+            {
+              "code": "neck_cream",
+              "title": "Крем для шеи и декольте"
+            },
+            {
+              "code": "scrub_peeling",
+              "title": "Скраб, пилинг, гель-скатка"
+            },
+            {
+              "code": "mask_cleansing",
+              "title": "Маска очищающая"
+            },
+            {
+              "code": "mask_care",
+              "title": "Маски ухаживающие, в том числе ночные"
+            },
+            {
+              "code": "mask_pores",
+              "title": "Маски для очищения пор, в том числе глиняные"
+            },
+            {
+              "code": "ampoules",
+              "title": "Специальные средства — ампулы"
+            },
+            {
+              "code": "spf",
+              "title": "UV-защита (SPF)"
+            }
+          ]
+        },
+        {
+          "key": "face_cleansing",
+          "block": "Паспорт · Уход за лицом",
+          "topic": "Очищение",
+          "type": "single",
+          "skippable": false,
+          "text": "Как Вы предпочитаете очищать кожу утром и вечером?",
+          "options": [
+            {
+              "code": "with_water",
+              "title": "С водой",
+              "subtitle": "мыло, гель, пенка"
+            },
+            {
+              "code": "without_water",
+              "title": "Без воды",
+              "subtitle": "молочко, крем, мицеллярная вода"
+            }
+          ]
+        },
+        {
+          "key": "face_factors",
+          "block": "Паспорт · Уход за лицом",
+          "topic": "Факторы влияния",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие факторы влияют на состояние Вашей кожи сейчас?",
+          "options": [
+            {
+              "code": "ecology",
+              "title": "Плохая экология, городская среда"
+            },
+            {
+              "code": "hard_water",
+              "title": "Жёсткая вода"
+            },
+            {
+              "code": "bad_habits",
+              "title": "Вредные привычки"
+            },
+            {
+              "code": "lack_of_sleep",
+              "title": "Недостаток сна"
+            },
+            {
+              "code": "hormonal",
+              "title": "Гормональная перестройка, в том числе беременность"
+            },
+            {
+              "code": "sun_exposure",
+              "title": "Много времени под активным солнцем"
+            },
+            {
+              "code": "dry_air",
+              "title": "Сухой воздух — отопление, кондиционер"
+            }
+          ]
+        },
+        {
+          "key": "face_texture",
+          "block": "Паспорт · Уход за лицом",
+          "topic": "Текстуры",
+          "type": "single",
+          "skippable": false,
+          "text": "Какие текстуры кремов для лица Вы предпочитаете?",
+          "options": [
+            {
+              "code": "light",
+              "title": "Максимально лёгкие, мгновенно впитываются",
+              "subtitle": "гелевые или как вода"
+            },
+            {
+              "code": "medium",
+              "title": "Средние, смягчающие",
+              "subtitle": "крем-гель, сорбе"
+            },
+            {
+              "code": "rich",
+              "title": "Насыщенные, питательные",
+              "subtitle": "плотный крем, баттер"
+            }
+          ]
+        },
+        {
+          "key": "face_gadgets",
+          "block": "Паспорт · Уход за лицом",
+          "topic": "Гаджеты и аксессуары",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какими инструментами ухода за лицом Вы пользуетесь?",
+          "options": [
+            {
+              "code": "massage_roller",
+              "title": "Массажный роллер"
+            },
+            {
+              "code": "microneedle_roller",
+              "title": "Роллер с микроиглами"
+            },
+            {
+              "code": "microcurrent",
+              "title": "Микротоковый аппарат"
+            },
+            {
+              "code": "led_mask",
+              "title": "LED-маска"
+            },
+            {
+              "code": "brush_sponge",
+              "title": "Щёточка или спонж для умывания"
+            },
+            {
+              "code": "none",
+              "title": "Не использую ничего подобного",
+              "exclusive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "male_face",
+      "genders": ["male"],
+      "category": "face",
+      "name": "Уход за лицом и бритьё",
+      "questions": [
+        {
+          "key": "face_skin_type",
+          "block": "Паспорт · Уход за лицом и бритьё",
+          "topic": "Тип кожи",
+          "type": "single",
+          "skippable": false,
+          "text": "Выберите описание, наиболее близкое к Вашей коже",
+          "options": [
+            {
+              "code": "oily",
+              "title": "Кожа очень жирная, постоянно блестит на всех участках, крупные поры",
+              "tags": ["skin_type:oily"]
+            },
+            {
+              "code": "combination",
+              "title": "Иногда появляется жирный блеск, в основном на лбу и возле носа, немного расширенных пор",
+              "tags": ["skin_type:combination"]
+            },
+            {
+              "code": "normal",
+              "title": "Жирного блеска не замечаю, на поры внимания никогда не обращал",
+              "tags": ["skin_type:normal"]
+            }
+          ]
+        },
+        {
+          "key": "face_concerns",
+          "block": "Паспорт · Уход за лицом и бритьё",
+          "topic": "Состояния и задачи",
+          "type": "multi",
+          "skippable": true,
+          "text": "С чем сталкивается Ваша кожа?",
+          "options": [
+            {
+              "code": "problem",
+              "title": "Частые воспаления, чёрные точки"
+            },
+            {
+              "code": "uneven_tone",
+              "title": "Неровный цвет лица, тусклый или тёмные участки"
+            },
+            {
+              "code": "dryness",
+              "title": "Сухость, стянутость, дискомфорт",
+              "subtitle": "особенно после умывания или бритья"
+            },
+            {
+              "code": "aging",
+              "title": "Признаки старения — морщины, потеря упругости"
+            }
+          ]
+        },
+        {
+          "key": "face_routine",
+          "block": "Паспорт · Уход за лицом и бритьё",
+          "topic": "Рутина",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие средства Вы используете ежедневно или еженедельно?",
+          "options": [
+            {
+              "code": "cleanser",
+              "title": "Средство для умывания"
+            },
+            {
+              "code": "toner",
+              "title": "Тоник или увлажняющий лосьон"
+            },
+            {
+              "code": "serum",
+              "title": "Сыворотка для лица"
+            },
+            {
+              "code": "cream",
+              "title": "Крем для лица"
+            },
+            {
+              "code": "eye_cream",
+              "title": "Крем для глаз"
+            },
+            {
+              "code": "scrub_peeling",
+              "title": "Скраб или пилинг"
+            },
+            {
+              "code": "mask_cleansing",
+              "title": "Очищающая маска"
+            },
+            {
+              "code": "mask_moisturizing",
+              "title": "Увлажняющая маска"
+            }
+          ]
+        },
+        {
+          "key": "face_shaving",
+          "block": "Паспорт · Уход за лицом и бритьё",
+          "topic": "Бритьё",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие средства и способы бритья Вы используете?",
+          "options": [
+            {
+              "code": "shaving_gel",
+              "title": "Гель для бритья"
+            },
+            {
+              "code": "shaving_foam",
+              "title": "Пена для бритья"
+            },
+            {
+              "code": "aftershave_lotion",
+              "title": "Лосьон после бритья"
+            },
+            {
+              "code": "aftershave_cream",
+              "title": "Крем после бритья"
+            },
+            {
+              "code": "razor",
+              "title": "Бреюсь станком"
+            },
+            {
+              "code": "electric_shaver",
+              "title": "Использую электробритву"
+            },
+            {
+              "code": "beard_barber",
+              "title": "Ношу бороду, хожу к барберу"
+            },
+            {
+              "code": "beard_home_care",
+              "title": "Ношу бороду, использую домашние средства ухода"
+            }
+          ]
+        },
+        {
+          "key": "face_factors",
+          "block": "Паспорт · Уход за лицом и бритьё",
+          "topic": "Факторы влияния",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие ещё факторы влияют на состояние Вашей кожи?",
+          "options": [
+            {
+              "code": "ecology",
+              "title": "Плохая экология"
+            },
+            {
+              "code": "harsh_work_conditions",
+              "title": "Сложные условия труда",
+              "subtitle": "вредное производство, загрязнения, солнце"
+            },
+            {
+              "code": "lack_of_sleep",
+              "title": "Не высыпаюсь"
+            },
+            {
+              "code": "shaving_irritation",
+              "title": "Раздражение после бритья, вросшие волоски, воспаления"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "female_hair",
+      "genders": ["female"],
+      "category": "hair",
+      "name": "Уход за волосами",
+      "questions": [
+        {
+          "key": "hair_scalp_type",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Тип кожи головы",
+          "type": "single",
+          "skippable": false,
+          "text": "Выберите тип кожи головы, наиболее похожий на Ваш",
+          "options": [
+            {
+              "code": "oily",
+              "title": "Жирная кожа головы, в том числе на висках и затылке"
+            },
+            {
+              "code": "oily_parting",
+              "title": "Жирная в районе пробора, на остальных участках нормальная"
+            },
+            {
+              "code": "normal",
+              "title": "Нормальная, нет проблем ни с жирностью, ни с сухостью"
+            },
+            {
+              "code": "dry",
+              "title": "Сухая кожа головы, есть дискомфорт"
+            }
+          ]
+        },
+        {
+          "key": "hair_condition",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Состояние волос",
+          "type": "single",
+          "skippable": false,
+          "text": "Выберите состояние волос, наиболее близкое к Вашему",
+          "options": [
+            {
+              "code": "oily_roots_dry_ends",
+              "title": "Жирнятся у корней и очень сухие ближе к концам"
+            },
+            {
+              "code": "dry_brittle",
+              "title": "Сухие и ломкие по всей длине"
+            },
+            {
+              "code": "split_ends",
+              "title": "По длине нормальные, но на концах заметно сечение"
+            },
+            {
+              "code": "healthy",
+              "title": "Гладкие и блестящие по всей длине, проблем нет"
+            }
+          ]
+        },
+        {
+          "key": "hair_concerns",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Особые задачи",
+          "type": "multi",
+          "skippable": true,
+          "text": "Что ещё беспокоит Вас в состоянии волос и кожи головы?",
+          "options": [
+            {
+              "code": "oily_dandruff",
+              "title": "Жирная перхоть, крупными хлопьями"
+            },
+            {
+              "code": "dry_dandruff",
+              "title": "Сухая перхоть, словно пыль"
+            },
+            {
+              "code": "hair_loss",
+              "title": "Сильное выпадение волос"
+            },
+            {
+              "code": "lack_volume",
+              "title": "Не хватает объёма"
+            },
+            {
+              "code": "lack_length",
+              "title": "Не хватает длины"
+            },
+            {
+              "code": "bleached_brittle",
+              "title": "Обесцвечиваю волосы, из-за этого они стали ломкими"
+            },
+            {
+              "code": "color_fades",
+              "title": "Окрашиваю волосы, цвет плохо держится"
+            },
+            {
+              "code": "sensitive_scalp",
+              "title": "Кожа головы очень чувствительная"
+            },
+            {
+              "code": "tangling",
+              "title": "Волосы длинные и сильно путаются при расчёсывании"
+            },
+            {
+              "code": "none",
+              "title": "Ничего из перечисленного, всё хорошо",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "hair_wash_frequency",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Частота мытья",
+          "type": "single",
+          "skippable": false,
+          "text": "Как часто Вы моете голову?",
+          "options": [
+            {
+              "code": "daily",
+              "title": "Каждый день"
+            },
+            {
+              "code": "every_other_day",
+              "title": "Через день"
+            },
+            {
+              "code": "every_3_days_or_less",
+              "title": "Раз в 3 дня и реже"
+            }
+          ]
+        },
+        {
+          "key": "hair_routine",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Рутина",
+          "type": "multi",
+          "skippable": true,
+          "text": "Отметьте средства, которые Вы используете",
+          "options": [
+            {
+              "code": "shampoo",
+              "title": "Шампунь"
+            },
+            {
+              "code": "conditioner",
+              "title": "Бальзам"
+            },
+            {
+              "code": "scalp_mask",
+              "title": "Маска для кожи головы"
+            },
+            {
+              "code": "hair_mask",
+              "title": "Маска для волос"
+            },
+            {
+              "code": "scalp_scrub",
+              "title": "Скраб для кожи головы"
+            },
+            {
+              "code": "leave_in",
+              "title": "Несмываемый уход",
+              "subtitle": "крем для волос, сухое масло"
+            },
+            {
+              "code": "detangling_spray",
+              "title": "Спрей для лёгкого расчёсывания"
+            },
+            {
+              "code": "ends_treatment",
+              "title": "Средство для кончиков волос"
+            },
+            {
+              "code": "dry_shampoo",
+              "title": "Сухой шампунь"
+            }
+          ]
+        },
+        {
+          "key": "hair_tools",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Аксессуары",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие аксессуары и инструменты Вы используете?",
+          "options": [
+            {
+              "code": "comb_natural",
+              "title": "Расчёска из натуральных материалов",
+              "subtitle": "дерево, щетина"
+            },
+            {
+              "code": "comb_synthetic",
+              "title": "Расчёска из искусственных материалов",
+              "subtitle": "пластик, металл"
+            },
+            {
+              "code": "comb_detangling",
+              "title": "Расчёска с эффектом распутывания",
+              "subtitle": "антистатический пластик"
+            },
+            {
+              "code": "hair_dryer",
+              "title": "Фен для сушки волос"
+            },
+            {
+              "code": "straightener_curler",
+              "title": "Утюжок или плойка"
+            },
+            {
+              "code": "curlers",
+              "title": "Бигуди"
+            }
+          ]
+        },
+        {
+          "key": "hair_styling_products",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Средства укладки",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие средства для укладки Вы обычно используете?",
+          "options": [
+            {
+              "code": "hairspray",
+              "title": "Лак для волос"
+            },
+            {
+              "code": "mousse",
+              "title": "Мусс или пенка для укладки"
+            },
+            {
+              "code": "gel",
+              "title": "Гель"
+            },
+            {
+              "code": "root_powder",
+              "title": "Пудра для прикорневого объёма"
+            },
+            {
+              "code": "wax",
+              "title": "Моделирующий воск"
+            },
+            {
+              "code": "volume_spray",
+              "title": "Спрей для объёма, текстурайзер"
+            },
+            {
+              "code": "shine_spray",
+              "title": "Спрей-блеск или сухое масло"
+            },
+            {
+              "code": "heat_protection",
+              "title": "Термозащита"
+            },
+            {
+              "code": "none",
+              "title": "Не использую средства для укладки",
+              "exclusive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "male_hair",
+      "genders": ["male"],
+      "category": "hair",
+      "name": "Уход за волосами",
+      "questions": [
+        {
+          "key": "hair_scalp_type",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Тип кожи головы",
+          "type": "single",
+          "skippable": false,
+          "text": "Какое определение больше соответствует Вашей коже головы?",
+          "options": [
+            {
+              "code": "very_oily",
+              "title": "Кожа головы очень жирная"
+            },
+            {
+              "code": "oily",
+              "title": "Кожа головы скорее жирная"
+            },
+            {
+              "code": "normal",
+              "title": "Нормальная кожа головы"
+            },
+            {
+              "code": "dry",
+              "title": "Скорее сухая, чем нормальная"
+            }
+          ]
+        },
+        {
+          "key": "hair_concerns",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Особые задачи",
+          "type": "multi",
+          "skippable": true,
+          "text": "С какими особенностями Вы сталкиваетесь?",
+          "options": [
+            {
+              "code": "oily_dandruff",
+              "title": "Жирная перхоть"
+            },
+            {
+              "code": "dry_dandruff",
+              "title": "Сухая перхоть"
+            },
+            {
+              "code": "hair_loss",
+              "title": "Выпадение волос"
+            },
+            {
+              "code": "sensitive_scalp",
+              "title": "Чувствительная кожа головы"
+            }
+          ]
+        },
+        {
+          "key": "hair_wash_frequency",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Частота мытья",
+          "type": "single",
+          "skippable": false,
+          "text": "Как часто Вы моете голову?",
+          "options": [
+            {
+              "code": "daily",
+              "title": "Каждый день"
+            },
+            {
+              "code": "every_other_day",
+              "title": "Через день"
+            },
+            {
+              "code": "every_3_days_or_less",
+              "title": "Раз в 3 дня и реже"
+            }
+          ]
+        },
+        {
+          "key": "hair_routine",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Рутина",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие средства ухода за кожей головы и волосами Вы используете?",
+          "options": [
+            {
+              "code": "body_hair_2in1",
+              "title": "Гель для тела и волос 2 в 1"
+            },
+            {
+              "code": "shampoo",
+              "title": "Шампунь для волос"
+            },
+            {
+              "code": "conditioner",
+              "title": "Бальзам для волос"
+            },
+            {
+              "code": "hair_mask",
+              "title": "Маска для волос"
+            }
+          ]
+        },
+        {
+          "key": "hair_styling",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Укладка",
+          "type": "single",
+          "skippable": false,
+          "text": "Укладываете ли Вы волосы?",
+          "options": [
+            {
+              "code": "none",
+              "title": "Нет, просто расчёсываюсь"
+            },
+            {
+              "code": "without_heat",
+              "title": "Укладываю без горячих инструментов"
+            },
+            {
+              "code": "with_heat",
+              "title": "Укладываю при помощи горячих инструментов",
+              "subtitle": "фен, щипцы"
+            }
+          ]
+        },
+        {
+          "key": "hair_styling_products",
+          "block": "Паспорт · Уход за волосами",
+          "topic": "Средства укладки",
+          "type": "multi",
+          "skippable": true,
+          "text": "Какие средства для укладки Вы обычно используете?",
+          "options": [
+            {
+              "code": "gel",
+              "title": "Гель"
+            },
+            {
+              "code": "root_powder",
+              "title": "Пудра для прикорневого объёма"
+            },
+            {
+              "code": "wax",
+              "title": "Моделирующий воск"
+            },
+            {
+              "code": "none",
+              "title": "Не использую средства для укладки",
+              "exclusive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "female_body",
+      "genders": ["female"],
+      "category": "body",
+      "name": "Уход за телом",
+      "draft": true,
+      "questions": [
+        {
+          "key": "body_skin_type",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Тип кожи",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Как Вы описали бы кожу тела?",
+          "options": [
+            {
+              "code": "dry",
+              "title": "Сухая, склонная к шелушению"
+            },
+            {
+              "code": "normal",
+              "title": "Нормальная, без особенностей"
+            },
+            {
+              "code": "sensitive",
+              "title": "Чувствительная, реагирует на средства"
+            },
+            {
+              "code": "combination",
+              "title": "Комбинированная — где-то сухо, где-то нормально"
+            }
+          ]
+        },
+        {
+          "key": "body_concerns",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Состояния и задачи",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Что Вы хотели бы улучшить?",
+          "options": [
+            {
+              "code": "firmness",
+              "title": "Упругость и тонус"
+            },
+            {
+              "code": "cellulite",
+              "title": "Неровности, «апельсиновая корка»"
+            },
+            {
+              "code": "stretch_marks",
+              "title": "Растяжки"
+            },
+            {
+              "code": "pigmentation",
+              "title": "Пигментация или неровный тон"
+            },
+            {
+              "code": "dryness",
+              "title": "Сухость и стянутость"
+            },
+            {
+              "code": "none",
+              "title": "Ничего не беспокоит",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "body_corrective_care",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Корректирующий уход",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Пользуетесь ли Вы специальным корректирующим уходом?",
+          "options": [
+            {
+              "code": "anticellulite",
+              "title": "Антицеллюлитные средства"
+            },
+            {
+              "code": "firming",
+              "title": "Укрепляющие и подтягивающие кремы"
+            },
+            {
+              "code": "stretch_marks",
+              "title": "Средства от растяжек"
+            },
+            {
+              "code": "massage_oils",
+              "title": "Массажные масла"
+            },
+            {
+              "code": "none",
+              "title": "Нет, не пользуюсь",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "body_routine",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Ежедневная рутина",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какие средства Вы используете регулярно?",
+          "options": [
+            {
+              "code": "shower_gel",
+              "title": "Гель или пенка для душа"
+            },
+            {
+              "code": "scrub",
+              "title": "Скраб для тела"
+            },
+            {
+              "code": "lotion",
+              "title": "Молочко или лосьон для тела"
+            },
+            {
+              "code": "rich_cream",
+              "title": "Питательный крем или баттер"
+            },
+            {
+              "code": "deodorant",
+              "title": "Дезодорант или антиперспирант"
+            },
+            {
+              "code": "hand_cream",
+              "title": "Крем для рук"
+            },
+            {
+              "code": "foot_cream",
+              "title": "Крем для ног"
+            }
+          ]
+        },
+        {
+          "key": "body_tools",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Аксессуары",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Что Вы используете во время ухода?",
+          "options": [
+            {
+              "code": "washcloth_brush",
+              "title": "Мочалка или щётка для тела"
+            },
+            {
+              "code": "massage_glove",
+              "title": "Массажная рукавица"
+            },
+            {
+              "code": "roller_massager",
+              "title": "Роликовый массажёр"
+            },
+            {
+              "code": "none",
+              "title": "Ничего из перечисленного",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "body_lifestyle",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Образ жизни",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Что из этого про Вас?",
+          "options": [
+            {
+              "code": "sport",
+              "title": "Регулярно занимаюсь спортом"
+            },
+            {
+              "code": "massage_spa",
+              "title": "Хожу на массаж или СПА"
+            },
+            {
+              "code": "pool_sauna",
+              "title": "Часто бываю в бассейне или сауне"
+            },
+            {
+              "code": "sedentary",
+              "title": "Много времени сидя, за компьютером"
+            },
+            {
+              "code": "none",
+              "title": "Ничего из перечисленного",
+              "exclusive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "male_body",
+      "genders": ["male"],
+      "category": "body",
+      "name": "Уход за телом",
+      "draft": true,
+      "questions": [
+        {
+          "key": "body_skin_type",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Тип кожи",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Как Вы описали бы кожу тела?",
+          "options": [
+            {
+              "code": "dry",
+              "title": "Сухая, бывает шелушение"
+            },
+            {
+              "code": "normal",
+              "title": "Нормальная"
+            },
+            {
+              "code": "sensitive",
+              "title": "Чувствительная, бывает раздражение"
+            }
+          ]
+        },
+        {
+          "key": "body_concerns",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Состояния и задачи",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Что из этого Вам знакомо?",
+          "options": [
+            {
+              "code": "dryness_after_shower",
+              "title": "Сухость после душа"
+            },
+            {
+              "code": "irritation",
+              "title": "Раздражение от одежды или бритья тела"
+            },
+            {
+              "code": "sweating",
+              "title": "Повышенная потливость"
+            },
+            {
+              "code": "rough_skin",
+              "title": "Огрубевшая кожа на локтях, коленях, стопах"
+            },
+            {
+              "code": "none",
+              "title": "Ничего не беспокоит",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "body_routine",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Ежедневная гигиена",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какие средства Вы используете регулярно?",
+          "options": [
+            {
+              "code": "shower_gel",
+              "title": "Гель для душа"
+            },
+            {
+              "code": "soap",
+              "title": "Мыло"
+            },
+            {
+              "code": "scrub",
+              "title": "Скраб для тела"
+            },
+            {
+              "code": "lotion",
+              "title": "Лосьон или крем для тела"
+            },
+            {
+              "code": "deodorant",
+              "title": "Дезодорант или антиперспирант"
+            },
+            {
+              "code": "hand_cream",
+              "title": "Крем для рук"
+            },
+            {
+              "code": "foot_cream",
+              "title": "Крем для ног"
+            }
+          ]
+        },
+        {
+          "key": "body_lifestyle",
+          "block": "Паспорт · Уход за телом",
+          "topic": "Образ жизни",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Что из этого про Вас?",
+          "options": [
+            {
+              "code": "sport",
+              "title": "Регулярно занимаюсь спортом"
+            },
+            {
+              "code": "physical_work",
+              "title": "Работа связана с физической нагрузкой"
+            },
+            {
+              "code": "pool_sauna",
+              "title": "Часто бываю в бассейне или сауне"
+            },
+            {
+              "code": "sedentary",
+              "title": "Много времени сидя, за компьютером"
+            },
+            {
+              "code": "none",
+              "title": "Ничего из перечисленного",
+              "exclusive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shared_sun",
+      "genders": ["female", "male"],
+      "category": "sun",
+      "name": "Солнечная линия",
+      "draft": true,
+      "questions": [
+        {
+          "key": "sun_phototype",
+          "block": "Паспорт · Солнечная линия",
+          "topic": "Фототип",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Как Ваша кожа реагирует на солнце?",
+          "options": [
+            {
+              "code": "burns_fast",
+              "title": "Быстро обгораю, почти не загораю",
+              "subtitle": "светлая кожа, часто веснушки"
+            },
+            {
+              "code": "burns_then_tans",
+              "title": "Сначала обгораю, потом загораю"
+            },
+            {
+              "code": "tans_easily",
+              "title": "Загораю легко, обгораю редко"
+            },
+            {
+              "code": "never_burns",
+              "title": "Практически никогда не обгораю, загар ровный"
+            }
+          ]
+        },
+        {
+          "key": "sun_features",
+          "block": "Паспорт · Солнечная линия",
+          "topic": "Особенности",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Есть ли что-то, что важно учесть?",
+          "options": [
+            {
+              "code": "pigmentation",
+              "title": "Есть пигментные пятна"
+            },
+            {
+              "code": "moles",
+              "title": "Есть родинки, за которыми слежу"
+            },
+            {
+              "code": "photosensitive_reaction",
+              "title": "Кожа реагирует на солнце покраснением или зудом"
+            },
+            {
+              "code": "photosensitizing_meds",
+              "title": "Принимаю средства, повышающие чувствительность к солнцу"
+            },
+            {
+              "code": "none",
+              "title": "Ничего из перечисленного",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "sun_situations",
+          "block": "Паспорт · Солнечная линия",
+          "topic": "Условия защиты",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "В каких ситуациях Вам нужна защита от солнца?",
+          "options": [
+            {
+              "code": "daily_city",
+              "title": "Каждый день в городе"
+            },
+            {
+              "code": "beach_vacation",
+              "title": "На пляже и в отпуске"
+            },
+            {
+              "code": "mountains_ski",
+              "title": "В горах, на лыжах"
+            },
+            {
+              "code": "outdoor_sport",
+              "title": "Во время спорта на улице"
+            },
+            {
+              "code": "only_very_sunny",
+              "title": "Только когда очень солнечно"
+            }
+          ]
+        },
+        {
+          "key": "sun_routine",
+          "block": "Паспорт · Солнечная линия",
+          "topic": "Рутина",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какие солнцезащитные средства Вы используете?",
+          "options": [
+            {
+              "code": "face_spf",
+              "title": "Крем для лица с SPF"
+            },
+            {
+              "code": "body_spf",
+              "title": "Средство для тела с SPF"
+            },
+            {
+              "code": "lip_spf",
+              "title": "Стик или бальзам для губ с SPF"
+            },
+            {
+              "code": "after_sun",
+              "title": "Средство после загара"
+            },
+            {
+              "code": "day_cream_spf",
+              "title": "Дневной крем с SPF в составе"
+            },
+            {
+              "code": "none",
+              "title": "Не использую",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "sun_texture",
+          "block": "Паспорт · Солнечная линия",
+          "topic": "Текстуры",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Какие текстуры солнцезащитных средств Вы предпочитаете?",
+          "options": [
+            {
+              "code": "light_fluid_spray",
+              "title": "Лёгкий флюид или спрей"
+            },
+            {
+              "code": "medium_cream",
+              "title": "Крем средней плотности"
+            },
+            {
+              "code": "rich_cream_oil",
+              "title": "Насыщенный крем или масло"
+            },
+            {
+              "code": "no_matter",
+              "title": "Не имеет значения"
+            }
+          ]
+        },
+        {
+          "key": "sun_self_tan",
+          "block": "Паспорт · Солнечная линия",
+          "topic": "Автозагар",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Пользуетесь ли Вы средствами для автозагара?",
+          "options": [
+            {
+              "code": "regularly",
+              "title": "Да, регулярно"
+            },
+            {
+              "code": "occasionally",
+              "title": "Иногда, перед событиями"
+            },
+            {
+              "code": "interested",
+              "title": "Нет, но интересно попробовать"
+            },
+            {
+              "code": "no",
+              "title": "Нет и не планирую"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "female_makeup",
+      "genders": ["female"],
+      "category": "makeup",
+      "name": "Макияж",
+      "draft": true,
+      "questions": [
+        {
+          "key": "makeup_frequency",
+          "block": "Паспорт · Макияж",
+          "topic": "Активность",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Как часто Вы делаете макияж?",
+          "options": [
+            {
+              "code": "daily_full",
+              "title": "Каждый день, полный макияж"
+            },
+            {
+              "code": "daily_light",
+              "title": "Каждый день, но лёгкий"
+            },
+            {
+              "code": "few_times_week",
+              "title": "Несколько раз в неделю"
+            },
+            {
+              "code": "special_occasions",
+              "title": "Только по особым случаям"
+            }
+          ]
+        },
+        {
+          "key": "makeup_zones",
+          "block": "Паспорт · Макияж",
+          "topic": "Предпочитаемые зоны",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Каким зонам Вы уделяете больше всего внимания?",
+          "options": [
+            {
+              "code": "complexion",
+              "title": "Тон и кожа"
+            },
+            {
+              "code": "eyes",
+              "title": "Глаза"
+            },
+            {
+              "code": "brows",
+              "title": "Брови"
+            },
+            {
+              "code": "lips",
+              "title": "Губы"
+            },
+            {
+              "code": "cheeks",
+              "title": "Скулы и румяна"
+            }
+          ]
+        },
+        {
+          "key": "makeup_routine",
+          "block": "Паспорт · Макияж",
+          "topic": "Рутина",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какие средства входят в Ваш обычный макияж?",
+          "options": [
+            {
+              "code": "primer",
+              "title": "База под макияж"
+            },
+            {
+              "code": "foundation",
+              "title": "Тональное средство"
+            },
+            {
+              "code": "concealer",
+              "title": "Консилер"
+            },
+            {
+              "code": "powder",
+              "title": "Пудра"
+            },
+            {
+              "code": "blush",
+              "title": "Румяна"
+            },
+            {
+              "code": "bronzer_contour",
+              "title": "Бронзер или скульптор"
+            },
+            {
+              "code": "highlighter",
+              "title": "Хайлайтер"
+            },
+            {
+              "code": "eyeshadow",
+              "title": "Тени"
+            },
+            {
+              "code": "eyeliner",
+              "title": "Подводка или карандаш"
+            },
+            {
+              "code": "mascara",
+              "title": "Тушь"
+            },
+            {
+              "code": "brow_products",
+              "title": "Средства для бровей"
+            },
+            {
+              "code": "lipstick",
+              "title": "Помада"
+            },
+            {
+              "code": "gloss_tint",
+              "title": "Блеск или тинт"
+            },
+            {
+              "code": "setting_spray",
+              "title": "Фиксирующий спрей"
+            }
+          ]
+        },
+        {
+          "key": "makeup_interests",
+          "block": "Паспорт · Макияж",
+          "topic": "Интересы",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какие средства Вам интересно попробовать?",
+          "options": [
+            {
+              "code": "new_foundation_formats",
+              "title": "Новые форматы тона — кушоны, флюиды"
+            },
+            {
+              "code": "cream_blush_contour",
+              "title": "Кремовые румяна и скульпторы"
+            },
+            {
+              "code": "colored_liners_shadows",
+              "title": "Цветные подводки и тени"
+            },
+            {
+              "code": "long_wear_tints",
+              "title": "Стойкие тинты для губ"
+            },
+            {
+              "code": "brow_lamination",
+              "title": "Средства для ламинирования бровей"
+            },
+            {
+              "code": "none",
+              "title": "Пока ничего нового не хочу",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "makeup_finish",
+          "block": "Паспорт · Макияж",
+          "topic": "Текстуры и эффекты",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какой финиш Вы предпочитаете?",
+          "options": [
+            {
+              "code": "matte",
+              "title": "Матовый"
+            },
+            {
+              "code": "natural_glow",
+              "title": "Естественное сияние"
+            },
+            {
+              "code": "full_coverage",
+              "title": "Плотное покрытие"
+            },
+            {
+              "code": "sheer",
+              "title": "Лёгкое, почти незаметное покрытие"
+            },
+            {
+              "code": "long_wear",
+              "title": "Максимальная стойкость"
+            }
+          ]
+        },
+        {
+          "key": "makeup_tools",
+          "block": "Паспорт · Макияж",
+          "topic": "Аксессуары",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Чем Вы наносите макияж?",
+          "options": [
+            {
+              "code": "brushes",
+              "title": "Кисти"
+            },
+            {
+              "code": "sponges",
+              "title": "Спонжи и бьюти-блендеры"
+            },
+            {
+              "code": "fingers",
+              "title": "Пальцами"
+            },
+            {
+              "code": "kit_applicators",
+              "title": "Аппликаторами из набора"
+            }
+          ]
+        },
+        {
+          "key": "makeup_removal",
+          "block": "Паспорт · Макияж",
+          "topic": "Снятие макияжа",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Чем Вы снимаете макияж?",
+          "options": [
+            {
+              "code": "micellar_water",
+              "title": "Мицеллярная вода"
+            },
+            {
+              "code": "cleansing_oil",
+              "title": "Гидрофильное масло"
+            },
+            {
+              "code": "milk_cream",
+              "title": "Молочко или сливки"
+            },
+            {
+              "code": "biphase_eye",
+              "title": "Двухфазное средство для глаз"
+            },
+            {
+              "code": "wipes",
+              "title": "Салфетки"
+            }
+          ]
+        },
+        {
+          "key": "makeup_palette",
+          "block": "Паспорт · Макияж",
+          "topic": "Оттенки",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Какая гамма Вам ближе?",
+          "options": [
+            {
+              "code": "nude",
+              "title": "Нюд и бежевые оттенки"
+            },
+            {
+              "code": "warm",
+              "title": "Тёплые — коралл, персик, терракота"
+            },
+            {
+              "code": "cool",
+              "title": "Холодные — розовый, ягодный, сливовый"
+            },
+            {
+              "code": "bright",
+              "title": "Яркие и насыщенные"
+            },
+            {
+              "code": "varied",
+              "title": "Люблю разное"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shared_perfume",
+      "genders": ["female", "male"],
+      "category": "perfume",
+      "name": "Парфюмерия",
+      "draft": true,
+      "questions": [
+        {
+          "key": "perfume_frequency",
+          "block": "Паспорт · Парфюмерия",
+          "topic": "Частота",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Как часто Вы пользуетесь парфюмерией?",
+          "options": [
+            {
+              "code": "daily",
+              "title": "Каждый день"
+            },
+            {
+              "code": "few_times_week",
+              "title": "Несколько раз в неделю"
+            },
+            {
+              "code": "special_occasions",
+              "title": "По особым случаям"
+            },
+            {
+              "code": "rarely",
+              "title": "Редко"
+            }
+          ]
+        },
+        {
+          "key": "perfume_collection",
+          "block": "Паспорт · Парфюмерия",
+          "topic": "Коллекция",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Сколько ароматов сейчас в Вашей коллекции?",
+          "options": [
+            {
+              "code": "one",
+              "title": "Один любимый"
+            },
+            {
+              "code": "two_three",
+              "title": "2–3 аромата"
+            },
+            {
+              "code": "four_seven",
+              "title": "4–7 ароматов"
+            },
+            {
+              "code": "more_than_seven",
+              "title": "Больше семи"
+            }
+          ]
+        },
+        {
+          "key": "perfume_routine",
+          "block": "Паспорт · Парфюмерия",
+          "topic": "Рутина",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какую парфюмированную продукцию Вы используете?",
+          "options": [
+            {
+              "code": "edp",
+              "title": "Парфюмерная вода"
+            },
+            {
+              "code": "edt",
+              "title": "Туалетная вода"
+            },
+            {
+              "code": "parfum",
+              "title": "Духи"
+            },
+            {
+              "code": "shower_gel",
+              "title": "Парфюмированный гель для душа"
+            },
+            {
+              "code": "body_milk",
+              "title": "Парфюмированное молочко для тела"
+            },
+            {
+              "code": "deodorant",
+              "title": "Парфюмированный дезодорант"
+            },
+            {
+              "code": "hair_mist",
+              "title": "Ароматы для волос"
+            }
+          ]
+        },
+        {
+          "key": "perfume_intensity",
+          "block": "Паспорт · Парфюмерия",
+          "topic": "Интенсивность",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Какое звучание Вы предпочитаете?",
+          "options": [
+            {
+              "code": "light",
+              "title": "Лёгкое, едва уловимое"
+            },
+            {
+              "code": "moderate",
+              "title": "Умеренное, для близкого круга"
+            },
+            {
+              "code": "noticeable",
+              "title": "Заметное, со шлейфом"
+            },
+            {
+              "code": "depends",
+              "title": "Зависит от повода"
+            }
+          ]
+        },
+        {
+          "key": "perfume_families",
+          "block": "Паспорт · Парфюмерия",
+          "topic": "Семейства",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какие ароматы Вам нравятся?",
+          "options": [
+            {
+              "code": "floral",
+              "title": "Цветочные"
+            },
+            {
+              "code": "oriental_spicy",
+              "title": "Восточные и пряные"
+            },
+            {
+              "code": "woody",
+              "title": "Древесные"
+            },
+            {
+              "code": "fresh_citrus",
+              "title": "Свежие и цитрусовые"
+            },
+            {
+              "code": "fougere",
+              "title": "Фужерные"
+            },
+            {
+              "code": "chypre",
+              "title": "Шипровые"
+            },
+            {
+              "code": "gourmand",
+              "title": "Гурманские, сладкие"
+            },
+            {
+              "code": "aquatic",
+              "title": "Акватические"
+            }
+          ]
+        },
+        {
+          "key": "perfume_type",
+          "block": "Паспорт · Парфюмерия",
+          "topic": "Тип аромата",
+          "type": "single",
+          "skippable": false,
+          "draft": true,
+          "text": "Что Вам ближе?",
+          "options": [
+            {
+              "code": "classic",
+              "title": "Классика, проверенные временем ароматы"
+            },
+            {
+              "code": "new_from_known_brands",
+              "title": "Новинки известных брендов"
+            },
+            {
+              "code": "niche",
+              "title": "Нишевая парфюмерия"
+            },
+            {
+              "code": "everything",
+              "title": "Люблю всё и сразу"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shared_home",
+      "genders": ["female", "male"],
+      "category": "home",
+      "name": "Парфюмерия для дома",
+      "draft": true,
+      "questions": [
+        {
+          "key": "home_zones",
+          "block": "Паспорт · Парфюмерия для дома",
+          "topic": "Зоны",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Где Вам важен аромат?",
+          "options": [
+            {
+              "code": "living_room",
+              "title": "Гостиная"
+            },
+            {
+              "code": "bedroom",
+              "title": "Спальня"
+            },
+            {
+              "code": "bathroom",
+              "title": "Ванная"
+            },
+            {
+              "code": "hallway",
+              "title": "Прихожая"
+            },
+            {
+              "code": "workspace",
+              "title": "Рабочее место"
+            },
+            {
+              "code": "none_yet",
+              "title": "Пока нигде, но интересно попробовать",
+              "exclusive": true
+            }
+          ]
+        },
+        {
+          "key": "home_mood",
+          "block": "Паспорт · Парфюмерия для дома",
+          "topic": "Настроение",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какое настроение Вы хотите создать?",
+          "options": [
+            {
+              "code": "cozy_warm",
+              "title": "Уют и тепло"
+            },
+            {
+              "code": "fresh_clean",
+              "title": "Свежесть и чистота"
+            },
+            {
+              "code": "relax_sleep",
+              "title": "Расслабление перед сном"
+            },
+            {
+              "code": "energy_focus",
+              "title": "Бодрость и концентрация"
+            },
+            {
+              "code": "luxury_festive",
+              "title": "Роскошь и торжественность"
+            }
+          ]
+        },
+        {
+          "key": "home_formats",
+          "block": "Паспорт · Парфюмерия для дома",
+          "topic": "Формат",
+          "type": "multi",
+          "skippable": true,
+          "draft": true,
+          "text": "Какие форматы Вам удобны?",
+          "options": [
+            {
+              "code": "reed_diffuser",
+              "title": "Аромадиффузор с палочками"
+            },
+            {
+              "code": "candle",
+              "title": "Свеча"
+            },
+            {
+              "code": "room_spray",
+              "title": "Спрей для дома"
+            },
+            {
+              "code": "textile_fragrance",
+              "title": "Ароматы для текстиля"
+            },
+            {
+              "code": "electric_diffuser",
+              "title": "Электрический диффузор"
+            },
+            {
+              "code": "sachet",
+              "title": "Саше"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "psychotypes": {
+    "E": {
+      "name": "Эмоциональный",
+      "description": "Процесс важнее результата. Вы получаете удовольствие от выбора, распаковки, тестирования. Ищете новые эмоции, текстуры, ароматы и истории, любите пробовать разное и смешивать бренды."
+    },
+    "P": {
+      "name": "Прагматичный",
+      "description": "Результат важнее процесса. Вы покупаете, чтобы закрыть конкретную потребность. Избирательны, пользуетесь проверенными средствами известных брендов, цените чёткую информацию по существу."
+    },
+    "L": {
+      "name": "Премиальный",
+      "description": "Важен индивидуальный подход. Вы покупаете лучшее, потому что это подчёркивает статус и вкус. Значение имеют не только свойства, но и история бренда, дизайн флакона, лимитированность и эксклюзивность обслуживания."
+    },
+    "M": {
+      "name": "Смешанный",
+      "description": "Ваши предпочтения не укладываются в одну категорию — в разных ситуациях Вам важно разное. Показываем полный спектр возможностей и не ограничиваем выбор."
+    }
+  },
+  "widgets": [
+    {
+      "n": 1,
+      "code": "favorites",
+      "name": "Любимые товары и бренды",
+      "segment": "all",
+      "why": "Быстрый доступ к тому, что Вы уже выбрали"
+    },
+    {
+      "n": 2,
+      "code": "preferences_quiz",
+      "name": "Опросник о предпочтениях",
+      "segment": "all",
+      "why": "Профиль можно дополнить в любой момент — рекомендации станут точнее"
+    },
+    {
+      "n": 3,
+      "code": "loyalty_program",
+      "name": "Расширенная программа лояльности",
+      "segment": "all",
+      "why": "Статус, бонусы и привилегии в одном месте"
+    },
+    {
+      "n": 4,
+      "code": "ai_assistant",
+      "name": "ИИ-ассистент",
+      "segment": ["P"],
+      "why": "Отвечает по существу и подбирает средства под конкретную задачу"
+    },
+    {
+      "n": 5,
+      "code": "news_blog",
+      "name": "Новости и блог",
+      "segment": ["E"],
+      "why": "Новинки, тренды и истории брендов — то, что интересно открывать"
+    },
+    {
+      "n": 6,
+      "code": "beauty_services",
+      "name": "Запись на сервисы красоты",
+      "segment": ["E", "L"],
+      "why": "Кабины красоты и консультации специалистов по онлайн-записи"
+    },
+    {
+      "n": 7,
+      "code": "wishlist",
+      "name": "Управление виш-листом",
+      "segment": "all",
+      "why": "Сохраняйте желаемое и получайте уведомления о скидках"
+    },
+    {
+      "n": 8,
+      "code": "recommendations_feed",
+      "name": "Лента с рекомендациями",
+      "segment": ["E", "P"],
+      "why": "Персональная подборка на основе Вашего профиля"
+    },
+    {
+      "n": 9,
+      "code": "community",
+      "name": "Общение с комьюнити",
+      "segment": ["E"],
+      "why": "Обсуждения, отзывы и обмен опытом с другими покупателями"
+    },
+    {
+      "n": 10,
+      "code": "gamification",
+      "name": "Геймификация",
+      "segment": ["E"],
+      "why": "Достижения и прогресс — интересный способ открывать новое"
+    },
+    {
+      "n": 11,
+      "code": "beauty_calendar",
+      "name": "Ваш календарь красоты",
+      "segment": ["P", "L"],
+      "why": "Напоминания о рутине и о том, когда пора обновить средство"
+    },
+    {
+      "n": 12,
+      "code": "notifications",
+      "name": "Важные уведомления",
+      "segment": "all",
+      "why": "Напоминания, акции и просьбы оставить отзыв"
+    },
+    {
+      "n": 13,
+      "code": "product_subscription",
+      "name": "Подписка на товар",
+      "segment": ["P", "L"],
+      "why": "Регулярная доставка привычных средств без повторных заказов"
+    },
+    {
+      "n": 14,
+      "code": "closed_sales",
+      "name": "Закрытые предпродажи и распродажи",
+      "segment": ["E", "L"],
+      "why": "Ранний доступ к новинкам и специальным предложениям"
+    },
+    {
+      "n": 15,
+      "code": "expert_selections",
+      "name": "Персональные экспертные подборки",
+      "segment": ["P", "L"],
+      "why": "Готовые схемы ухода, собранные под Ваш профиль"
+    },
+    {
+      "n": 16,
+      "code": "beauty_boxes",
+      "name": "Бьюти-боксы",
+      "segment": ["E"],
+      "why": "Наборы для знакомства с новыми средствами"
+    },
+    {
+      "n": 17,
+      "code": "order_info",
+      "name": "Полная информация о заказе",
+      "segment": "all",
+      "why": "Состав, статус и история заказов без обращения в поддержку"
+    }
+  ],
+  "completeness": {
+    "basePct": 40,
+    "perCategoryPct": 20,
+    "maxCategories": 3
+  },
+  "screens": {
+    "intro": {
+      "eyebrow": "Персональный профиль",
+      "titleHtml": "Ваш профиль <em>красоты</em>",
+      "lead": "Пять коротких вопросов — и личный кабинет настроится под Вас. Займёт около минуты.",
+      "cardLabel": "Что Вы получите сразу",
+      "cardText": "Виджеты кабинета соберутся под Ваш тип, а подборки и уведомления станут отвечать Вашим интересам. Более детальный Паспорт красоты можно собрать позже — по желанию.",
+      "startLabel": "Начать"
+    },
+    "result1": {
+      "eyebrow": "Кабинет настроен",
+      "titleHtml": "Готово!",
+      "lead": "Ваш кабинет собран и уже работает. Виджеты ниже — активны.",
+      "typeLabel": "Ваш тип",
+      "announceEyebrow": "Следующий шаг · по желанию",
+      "announceTitle": "Соберите свой Паспорт красоты",
+      "announceText": "Вы можете собрать Паспорт красоты, чтобы получать более точные персональные рекомендации по товарам и целым системам ухода. Мы подберём средства под Ваш тип кожи, состояние волос и привычки — а не просто по популярности.",
+      "announceBullets": [
+        "Персональная система ухода вместо отдельных товаров",
+        "Подборки с учётом Ваших задач и текстур",
+        "Напоминания, когда пора обновить средство"
+      ],
+      "announceFoot": "Около 2 минут · можно прервать в любой момент",
+      "passportButtonPrefix": "Собрать Паспорт ·",
+      "laterLabel": "Позже",
+      "postponedTitle": "Хорошо, вернёмся к этому позже",
+      "postponedText": "Паспорт красоты всегда доступен в личном кабинете — в разделе «Мой профиль красоты».",
+      "postponedButton": "Всё-таки собрать",
+      "howTypeHtml": "<b>Как считается тип.</b> Голоса по вопросам 2–4 суммируются: два и более совпадения дают тип, разнобой или два ответа «не подходит» — смешанный. Смешанному показываем полный набор виджетов.",
+      "againLabel": "Пройти заново"
+    },
+    "result2": {
+      "eyebrow": "Паспорт обновлён",
+      "titleHtml": "Рекомендации <em>уточнены</em>",
+      "lead": "Теперь мы подбираем не отдельные товары, а систему ухода под Ваш профиль.",
+      "addEyebrow": "Расширить паспорт",
+      "addTitle": "Добавьте ещё категорию",
+      "addTextTemplate": "Чем полнее профиль, тем точнее подборки. Осталось категорий: {count}."
+    },
+    "meter": {
+      "label": "Профиль заполнен",
+      "nextAt40": "Соберите Паспорт красоты — рекомендации станут точнее",
+      "nextPartial": "Добавьте ещё категорию, чтобы профиль стал полным",
+      "full": "Профиль полный — рекомендации максимально точные"
+    },
+    "widgets": {
+      "prioritySection": "Ваши виджеты · подобраны по типу",
+      "baseSection": "Базовые виджеты · для всех"
+    }
+  },
+  "ui": {
+    "hintSingle": "Выберите один вариант",
+    "hintMulti": "Можно выбрать несколько вариантов",
+    "singleHint": "Нажмите на вариант, чтобы продолжить",
+    "draftBadge": "вопрос дописан",
+    "backLabel": "Назад",
+    "nextLabel": "Далее",
+    "skipLabel": "Пропустить",
+    "headerTag": "Опросник ЛК",
+    "brandName": "ИЛЬ ДЕ БОТЭ",
+    "passportBlockPrefix": "Паспорт · ",
+    "baseBlockLabel": "Уровень 1 · О вас"
+  }
+}

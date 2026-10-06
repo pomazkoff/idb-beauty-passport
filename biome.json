@@ -12,6 +12,15 @@
   },
   "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always", "trailingCommas": "all" } },
   "files": {
-    "ignore": ["**/dist/**", "**/node_modules/**", "**/coverage/**", "**/.turbo/**", "docs/source/**", "**/generated/**", "**/playwright-report/**", "pnpm-lock.yaml"]
+    "ignore": [
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/coverage/**",
+      "**/.turbo/**",
+      "docs/source/**",
+      "**/generated/**",
+      "**/playwright-report/**",
+      "pnpm-lock.yaml"
+    ]
   }
 }

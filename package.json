@@ -30,12 +30,6 @@
     "typescript": "^5.7.2"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "@prisma/client",
-      "@prisma/engines",
-      "esbuild",
-      "prisma"
-    ]
+    "onlyBuiltDependencies": ["@biomejs/biome", "@prisma/client", "@prisma/engines", "esbuild", "prisma"]
   }
 }

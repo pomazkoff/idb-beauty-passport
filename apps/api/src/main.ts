@@ -1,6 +1,5 @@
 import { createDb, loadDotenv, runMigrations } from "@idb/db";
-import { survey } from "@idb/survey-config";
-import { buildApp, registerSurveyVersion } from "./app.js";
+import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 
 loadDotenv();
@@ -9,8 +8,7 @@ const config = loadConfig();
 if (process.env.AUTO_MIGRATE === "true") await runMigrations(config.DATABASE_URL);
 
 const { db, close } = createDb(config.DATABASE_URL);
-await registerSurveyVersion(db, survey);
-const app = await buildApp({ config, db, survey });
+const app = await buildApp({ config, db });
 
 const shutdown = async (signal: string) => {
   app.log.info({ signal }, "останавливаемся");
@@ -29,4 +27,6 @@ setInterval(
 ).unref();
 
 await app.listen({ port: config.PORT, host: config.HOST });
-app.log.info(`survey ${survey.version} · auth=${config.AUTH_MODE} · swagger=${config.SWAGGER_ENABLED}`);
+app.log.info(
+  `survey ${app.surveyRegistry.current().version} · auth=${config.AUTH_MODE} · swagger=${config.SWAGGER_ENABLED} · admin=${Boolean(config.ADMIN_TOKEN)}`,
+);

@@ -35,6 +35,10 @@ const Env = z
     SHOW_TRAIT_SUBTITLE: envBool(true),
     COUNT_SKIPPED_CATEGORY: envBool(true),
     RETENTION_DAYS: z.coerce.number().int().positive().default(365),
+    /** Токен конструктора (X-Admin-Token). Пусто — админ-API выключен. */
+    ADMIN_TOKEN: z.string().min(16).optional(),
+    /** Ключ сервисного API для ENSI (X-Api-Key). Пусто — интеграционный API выключен. */
+    INTEGRATION_API_KEY: z.string().min(16).optional(),
   })
   .superRefine((e, ctx) => {
     if (e.NODE_ENV === "production" && e.AUTH_MODE === "dev") {

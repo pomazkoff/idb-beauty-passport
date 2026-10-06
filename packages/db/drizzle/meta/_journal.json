@@ -15,6 +15,13 @@
       "when": 1791277839671,
       "tag": "0001_outbox_last_attempt",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791278742769,
+      "tag": "0002_survey_versions_status",
+      "breakpoints": true
     }
   ]
 }

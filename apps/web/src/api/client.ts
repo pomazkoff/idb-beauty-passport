@@ -9,7 +9,13 @@ import type {
   SurveyConfig,
 } from "./types.js";
 
-export type Auth = { token?: string; customerId?: string };
+export type Auth = {
+  token?: string;
+  customerId?: string;
+  /** Предпросмотр черновика из конструктора: версия + X-Admin-Token. */
+  previewVersion?: string;
+  adminToken?: string;
+};
 
 export class ApiRequestError extends Error {
   constructor(
@@ -41,7 +47,12 @@ export class ApiClient {
     const h: Record<string, string> = { Accept: "application/json", ...extra };
     if (this.auth.token) h.Authorization = `Bearer ${this.auth.token}`;
     else if (this.auth.customerId) h["X-Customer-Id"] = this.auth.customerId;
+    if (this.auth.adminToken) h["X-Admin-Token"] = this.auth.adminToken;
     return h;
+  }
+
+  private versionQuery(prefix = "?"): string {
+    return this.auth.previewVersion ? `${prefix}version=${encodeURIComponent(this.auth.previewVersion)}` : "";
   }
 
   /** Запрос с экспоненциальным повтором на сетевых/5xx/429 (ТЗ 8.3). */
@@ -92,8 +103,12 @@ export class ApiClient {
   async getSurvey(gender: Gender | null): Promise<SurveyConfig> {
     const key = gender ?? "none";
     const cached = this.surveyCache.get(key);
-    const res = await fetch(`${this.base}/api/v1/survey${gender ? `?gender=${gender}` : ""}`, {
-      headers: cached ? { "If-None-Match": cached.etag } : {},
+    const qs = [gender ? `gender=${gender}` : "", this.versionQuery("")].filter(Boolean).join("&");
+    const res = await fetch(`${this.base}/api/v1/survey${qs ? `?${qs}` : ""}`, {
+      headers: {
+        ...(cached ? { "If-None-Match": cached.etag } : {}),
+        ...(this.auth.adminToken ? { "X-Admin-Token": this.auth.adminToken } : {}),
+      },
     });
     if (res.status === 304 && cached) return cached.data;
     if (!res.ok) throw new ApiRequestError(res.status, { code: "HTTP_ERROR", message: `HTTP ${res.status}` });
@@ -103,7 +118,8 @@ export class ApiClient {
     return data;
   }
 
-  getSession = () => this.request<SessionView>("GET", "/me/session").then((r) => r.data);
+  getSession = () =>
+    this.request<SessionView>("GET", `/me/session${this.versionQuery()}`).then((r) => r.data);
 
   putAnswer = (key: string, optionCodes: string[], skipped: boolean, timeMs?: number) =>
     this.request<SessionView>("PUT", `/me/session/answers/${key}`, { optionCodes, skipped, timeMs }).then(
@@ -118,7 +134,8 @@ export class ApiClient {
     this.request<SessionView>("POST", "/me/session/passport:start", { category }).then((r) => r.data);
   completePassport = (category: Category) =>
     this.request<BeautyProfile>("POST", "/me/session/passport:complete", { category }).then((r) => r.data);
-  reset = () => this.request<SessionView>("POST", "/me/session:reset").then((r) => r.data);
+  reset = () =>
+    this.request<SessionView>("POST", `/me/session:reset${this.versionQuery()}`).then((r) => r.data);
   getProfile = () => this.request<ProfileView>("GET", "/me/profile").then((r) => r.data);
 
   /** Пакет событий. keepalive переживает закрытие вкладки (аналог sendBeacon, но с заголовками авторизации). */

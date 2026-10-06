@@ -18,35 +18,25 @@ import type { Config } from "./config.js";
 import { AppError } from "./errors.js";
 import { Metrics, metricsRoutes } from "./metrics.js";
 import { type Authenticator, authPlugin, devAuthenticator, jwtAuthenticator } from "./plugins/auth.js";
+import { adminRoutes } from "./routes/admin.js";
 import { eventsRoutes } from "./routes/events.js";
 import { healthRoutes } from "./routes/health.js";
 import { sessionRoutes } from "./routes/session.js";
 import { surveyRoutes } from "./routes/survey.js";
 import { SessionService } from "./services/session.service.js";
+import { SurveyRegistry } from "./services/survey-registry.js";
 
 export type BuildOptions = {
   config: Config;
   db: Db;
-  survey?: Survey;
   authenticate?: Authenticator;
   logger?: boolean | object;
 };
 
-/** Регистрирует текущую версию конфига в БД (идемпотентно). Сессии ссылаются на неё. */
-export async function registerSurveyVersion(db: Db, survey: Survey): Promise<void> {
-  const issues = validateSurvey(survey);
-  if (issues.length)
-    throw new Error(`Конфиг опросника невалиден: ${issues.map((i) => `${i.path}: ${i.message}`).join("; ")}`);
-  const checksum = createHash("sha256").update(JSON.stringify(survey)).digest("hex");
-  await db
-    .insert(surveyVersions)
-    .values({ version: survey.version, config: survey, checksum })
-    .onConflictDoNothing();
-}
-
 export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
   const { config, db } = opts;
-  const survey = opts.survey ?? defaultSurvey;
+  const registry = new SurveyRegistry(db);
+  const survey = await registry.init();
   const app = Fastify({
     logger: opts.logger ?? {
       level: config.LOG_LEVEL,
@@ -133,16 +123,18 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
   );
 
   const metrics = new Metrics();
-  const service = new SessionService(db, survey);
+  const service = new SessionService(db, registry);
   app.decorate("sessionService", service);
+  app.decorate("surveyRegistry", registry);
 
   await app.register(metricsRoutes, { db, metrics });
   await app.register(
     async (api) => {
-      await api.register(healthRoutes, { db, version: survey.version });
-      await api.register(surveyRoutes, { survey, config });
+      await api.register(healthRoutes, { db, registry });
+      await api.register(surveyRoutes, { registry, config });
       await api.register(sessionRoutes, { service, config });
       await api.register(eventsRoutes, { db, config });
+      await api.register(adminRoutes, { registry, config });
     },
     { prefix: "/api/v1" },
   );
@@ -153,5 +145,6 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
 declare module "fastify" {
   interface FastifyInstance {
     sessionService: SessionService;
+    surveyRegistry: SurveyRegistry;
   }
 }

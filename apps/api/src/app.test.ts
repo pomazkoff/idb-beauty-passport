@@ -1,12 +1,12 @@
 import { createDb, runMigrations } from "@idb/db";
-import { survey } from "@idb/survey-config";
 import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { buildApp, registerSurveyVersion } from "./app.js";
+import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 
 const TEST_DB = process.env.TEST_DATABASE_URL ?? "postgresql://idb@localhost:5432/beauty_passport_test";
+const ADMIN = "test-admin-token-0123456789";
 
 let app: FastifyInstance;
 let close: () => Promise<void>;
@@ -17,7 +17,7 @@ beforeAll(async () => {
   const conn = createDb(TEST_DB, { max: 4 });
   db = conn.db;
   close = conn.close;
-  await registerSurveyVersion(db, survey);
+  await db.execute(sql`TRUNCATE survey_versions CASCADE`);
   const config = loadConfig({
     NODE_ENV: "test",
     DATABASE_URL: TEST_DB,
@@ -25,8 +25,9 @@ beforeAll(async () => {
     CORS_ORIGINS: "http://localhost:5173",
     SWAGGER_ENABLED: "true",
     RATE_LIMIT_PER_MINUTE: "1000",
+    ADMIN_TOKEN: ADMIN,
   });
-  app = await buildApp({ config, db, survey, logger: false });
+  app = await buildApp({ config, db, logger: false });
   await app.ready();
 });
 
@@ -312,5 +313,117 @@ describe("POST /events", () => {
     expect((rows[0] as { session_id: string | null }).session_id).not.toBeNull();
     const bad = await call("POST", "/events", "e1", { events: [{ name: "hack", params: {} }] });
     expect(bad.statusCode).toBe(422);
+  });
+});
+
+// ── версии и конструктор (этап 8) ────────────────────────────────────
+describe("admin: версии опросника", () => {
+  const A = { "x-admin-token": ADMIN };
+  const adm = (method: "GET" | "POST" | "PUT" | "DELETE", url: string, payload?: unknown) =>
+    app.inject({ method, url: `/api/v1/admin${url}`, headers: A, payload: payload as never });
+
+  it("без токена — 401; с токеном — список с опубликованной 1.0.0", async () => {
+    expect((await app.inject({ url: "/api/v1/admin/surveys" })).statusCode).toBe(401);
+    expect(
+      (await app.inject({ url: "/api/v1/admin/surveys", headers: { "x-admin-token": "wrong" } })).statusCode,
+    ).toBe(401);
+    const r = await adm("GET", "/surveys");
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data).toMatchObject([
+      { version: "1.0.0", status: "published", issues: 0, branches: 10, questions: 63 },
+    ]);
+  });
+
+  it("черновик: создать → изменить текст → предпросмотр → опубликовать → старая сессия живёт на своей версии", async () => {
+    // клиент начал на 1.0.0
+    await put("v-old", "gender", ["female"]);
+
+    const created = await adm("POST", "/surveys", { version: "1.1.0", notes: "правим текст" });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().data).toMatchObject({ version: "1.1.0", status: "draft", sourceVersion: "1.0.0" });
+    expect((await adm("POST", "/surveys", { version: "1.1.0" })).statusCode).toBe(422); // дубль
+
+    const cfg = (await adm("GET", "/surveys/1.1.0")).json().data.config;
+    cfg.screens.intro.lead = "Новый лид";
+    cfg.base[0].options[0].title = "Женщина";
+    const saved = await adm("PUT", "/surveys/1.1.0", { config: cfg });
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json().meta.report.ok).toBe(true);
+
+    // черновик недоступен без токена, доступен с токеном
+    expect((await app.inject({ url: "/api/v1/survey?version=1.1.0" })).statusCode).toBe(403);
+    const prev = await app.inject({ url: "/api/v1/survey?version=1.1.0&gender=female", headers: A });
+    expect(prev.statusCode).toBe(200);
+    expect(prev.json().data.screens.intro.lead).toBe("Новый лид");
+    expect(prev.headers["cache-control"]).toBe("no-store");
+    // опубликованная — без изменений
+    expect((await app.inject({ url: "/api/v1/survey" })).json().data.screens.intro.lead).not.toBe(
+      "Новый лид",
+    );
+
+    // сессия предпросмотра на черновике
+    const ps = await app.inject({
+      url: "/api/v1/me/session?version=1.1.0",
+      headers: { ...H("preview-1"), ...A },
+    });
+    expect(ps.json().data.surveyVersion).toBe("1.1.0");
+    expect(
+      (await app.inject({ url: "/api/v1/me/session?version=1.1.0", headers: H("preview-2") })).statusCode,
+    ).toBe(403);
+
+    // публикация
+    const pub = await adm("POST", "/surveys/1.1.0/publish");
+    expect(pub.statusCode).toBe(200);
+    expect(pub.json().data.status).toBe("published");
+    const list = (await adm("GET", "/surveys")).json().data;
+    expect(list.map((v: { version: string; status: string }) => `${v.version}:${v.status}`).sort()).toEqual([
+      "1.0.0:archived",
+      "1.1.0:published",
+    ]);
+    expect((await app.inject({ url: "/api/v1/health" })).json().data.surveyVersion).toBe("1.1.0");
+    expect((await app.inject({ url: "/api/v1/survey" })).json().data.screens.intro.lead).toBe("Новый лид");
+
+    // старая сессия продолжает на 1.0.0, новая — на 1.1.0
+    const old = await put("v-old", "psycho1", ["E"]);
+    expect(old.statusCode).toBe(200);
+    expect(old.json().data.surveyVersion).toBe("1.0.0");
+    expect((await call("GET", "/me/session", "v-new")).json().data.surveyVersion).toBe("1.1.0");
+    // «пройти заново» переводит на опубликованную
+    expect((await call("POST", "/me/session:reset", "v-old")).json().data.surveyVersion).toBe("1.1.0");
+
+    // опубликованную нельзя править и удалять
+    expect((await adm("PUT", "/surveys/1.1.0", { config: cfg })).statusCode).toBe(403);
+    expect((await adm("DELETE", "/surveys/1.1.0")).statusCode).toBe(403);
+  });
+
+  it("публикация блокируется: замороженные коды, семантика, схема", async () => {
+    await adm("POST", "/surveys", { version: "2.0.0" });
+    const cfg = (await adm("GET", "/surveys/2.0.0")).json().data.config;
+    // удаляем опубликованный вариант и переименовываем ключ вопроса
+    cfg.base[1].options.female.pop();
+    cfg.branches[0].questions[0].key = "renamed";
+    const saved = await adm("PUT", "/surveys/2.0.0", { config: cfg });
+    const report = saved.json().meta.report;
+    expect(report.ok).toBe(false);
+    expect(report.frozen.map((i: { path: string }) => i.path)).toEqual(
+      expect.arrayContaining(["female.psycho1.M", "female.face_skin_type"]),
+    );
+    const pub = await adm("POST", "/surveys/2.0.0/publish");
+    expect(pub.statusCode).toBe(422);
+    expect(pub.json().errors[0].meta.report.frozen.length).toBeGreaterThan(0);
+
+    // структурно сломанный черновик сохраняется, но помечен
+    const broken = await adm("PUT", "/surveys/2.0.0", { config: { foo: 1 } });
+    expect(broken.statusCode).toBe(200);
+    expect(broken.json().meta.report.schema.length).toBeGreaterThan(0);
+    expect((await adm("GET", "/surveys/2.0.0/content-map")).statusCode).toBe(422);
+    expect((await adm("DELETE", "/surveys/2.0.0")).statusCode).toBe(204);
+  });
+
+  it("content-map отдаёт markdown", async () => {
+    const r = await adm("GET", "/surveys/1.0.0/content-map");
+    expect(r.statusCode).toBe(200);
+    expect(r.headers["content-type"]).toContain("text/markdown");
+    expect(r.body).toContain("# Карта контента опросника");
   });
 });

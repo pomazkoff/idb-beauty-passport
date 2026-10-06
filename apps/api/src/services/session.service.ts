@@ -22,6 +22,7 @@ import { type Db, type SessionRow, answers, ensiOutbox, profiles, sessions } fro
 import { type Survey, findBranch } from "@idb/survey-config";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { AppError } from "../errors.js";
+import type { SurveyRegistry } from "./survey-registry.js";
 
 export type SessionView = {
   sessionId: string;
@@ -43,45 +44,54 @@ export type SyncStatus = {
 export class SessionService {
   constructor(
     private readonly db: Db,
-    private readonly survey: Survey,
+    private readonly registry: SurveyRegistry,
   ) {}
 
   // ── чтение ──────────────────────────────────────────────────────
-  async getOrCreate(customerId: string): Promise<SessionView> {
+  /** Активная сессия клиента; создаётся на опубликованной версии (или на `version` — предпросмотр черновика). */
+  async getOrCreate(customerId: string, version?: string): Promise<SessionView> {
     const existing = await this.db.query.sessions.findFirst({
       where: and(eq(sessions.customerId, customerId), eq(sessions.status, "active")),
       with: { answers: true },
     });
-    if (existing) return this.toView(existing, existing.answers);
+    if (existing)
+      return this.toView(existing, existing.answers, await this.registry.get(existing.surveyVersion));
 
+    const target = version ? await this.registry.get(version) : this.registry.current();
     const [row] = await this.db
       .insert(sessions)
-      .values({ customerId, surveyVersion: this.survey.version })
+      .values({ customerId, surveyVersion: target.version })
       .onConflictDoNothing()
       .returning();
-    if (row) return this.toView(row, []);
+    if (row) return this.toView(row, [], target);
     // гонка: кто-то создал параллельно
-    return this.getOrCreate(customerId);
+    return this.getOrCreate(customerId, version);
   }
 
+  /**
+   * Активная сессия + конфиг той версии, на которой она начата: сессия доживает на своей версии,
+   * даже если опубликована новая. SURVEY_VERSION_MISMATCH — только если версия удалена.
+   */
   private async loadActive(customerId: string) {
     const row = await this.db.query.sessions.findFirst({
       where: and(eq(sessions.customerId, customerId), eq(sessions.status, "active")),
       with: { answers: true },
     });
     if (!row) throw new AppError("NOT_FOUND", "Активная сессия не найдена");
-    if (row.surveyVersion !== this.survey.version) {
-      // Сессия начата на другой версии конфига: продолжать нельзя — сервер держит в памяти только текущую.
+    let survey: Survey;
+    try {
+      survey = await this.registry.get(row.surveyVersion);
+    } catch {
       throw new AppError(
         "SURVEY_VERSION_MISMATCH",
-        "Сессия начата на другой версии опросника; начните заново",
+        "Версия опросника этой сессии больше недоступна; начните заново",
         {
           session: row.surveyVersion,
-          current: this.survey.version,
+          current: this.registry.current().version,
         },
       );
     }
-    return row;
+    return { ...row, survey };
   }
 
   private toState(row: SessionRow, rows: (typeof answers.$inferSelect)[]): SurveyState {
@@ -102,7 +112,7 @@ export class SessionService {
     };
   }
 
-  private toView(row: SessionRow, rows: (typeof answers.$inferSelect)[]): SessionView {
+  private toView(row: SessionRow, rows: (typeof answers.$inferSelect)[], survey: Survey): SessionView {
     const state = this.toState(row, rows);
     return {
       sessionId: row.id,
@@ -110,7 +120,7 @@ export class SessionService {
       stage: row.stage,
       activeCategory: (row.activeCategory as CategoryCode | null) ?? null,
       answers: state.answers,
-      derived: derive(this.survey, state),
+      derived: derive(survey, state),
     };
   }
 
@@ -123,7 +133,7 @@ export class SessionService {
     const row = await this.loadActive(customerId);
     const state = this.toState(row, row.answers);
     const now = new Date();
-    const r = applyAnswer(this.survey, state, questionKey, { ...input, answeredAt: now.toISOString() });
+    const r = applyAnswer(row.survey, state, questionKey, { ...input, answeredAt: now.toISOString() });
     if (!r.ok)
       throw new AppError(
         r.error.code,
@@ -171,14 +181,14 @@ export class SessionService {
     });
 
     const fresh = await this.loadActive(customerId);
-    return { ...this.toView(fresh, fresh.answers), genderReset: r.genderReset };
+    return { ...this.toView(fresh, fresh.answers, fresh.survey), genderReset: r.genderReset };
   }
 
   // ── завершение этапов ───────────────────────────────────────────
   async completeBase(customerId: string): Promise<BeautyProfile> {
     const row = await this.loadActive(customerId);
     const state = this.toState(row, row.answers);
-    if (!isBaseAnswered(this.survey, state)) {
+    if (!isBaseAnswered(row.survey, state)) {
       throw new AppError("STAGE_NOT_COMPLETE", "Не все базовые вопросы отвечены");
     }
     const next = markBaseCompleted(state);
@@ -190,7 +200,7 @@ export class SessionService {
     const state = this.toState(row, row.answers);
     const gender = getGender(state);
     if (!state.baseCompleted || !gender) throw new AppError("STAGE_NOT_COMPLETE", "Сначала завершите базу");
-    if (!findBranch(this.survey, gender, category)) {
+    if (!findBranch(row.survey, gender, category)) {
       throw new AppError("BRANCH_NOT_AVAILABLE", `Категория ${category} недоступна`, { gender, category });
     }
     await this.db
@@ -198,7 +208,7 @@ export class SessionService {
       .set({ stage: "passport", activeCategory: category, updatedAt: new Date() })
       .where(eq(sessions.id, row.id));
     const fresh = await this.loadActive(customerId);
-    return this.toView(fresh, fresh.answers);
+    return this.toView(fresh, fresh.answers, fresh.survey);
   }
 
   async completePassport(customerId: string, category: CategoryCode): Promise<BeautyProfile> {
@@ -206,10 +216,10 @@ export class SessionService {
     const state = this.toState(row, row.answers);
     const gender = getGender(state);
     if (!state.baseCompleted || !gender) throw new AppError("STAGE_NOT_COMPLETE", "Сначала завершите базу");
-    if (!getBranchQuestions(this.survey, gender, category)) {
+    if (!getBranchQuestions(row.survey, gender, category)) {
       throw new AppError("BRANCH_NOT_AVAILABLE", `Категория ${category} недоступна`, { gender, category });
     }
-    if (!isBranchAnswered(this.survey, state, category)) {
+    if (!isBranchAnswered(row.survey, state, category)) {
       throw new AppError("STAGE_NOT_COMPLETE", "Не все вопросы категории отвечены или пропущены", {
         category,
       });
@@ -223,7 +233,7 @@ export class SessionService {
    * положить задание в outbox, пометить старые pending того же клиента superseded (ТЗ 10.3).
    */
   private async persistStage(
-    row: SessionRow,
+    row: SessionRow & { survey: Survey },
     state: SurveyState,
     patch: { stage: SessionRow["stage"]; activeCategory: string | null },
   ): Promise<BeautyProfile> {
@@ -250,7 +260,7 @@ export class SessionService {
         .for("update");
       const revision = (last?.revision ?? 0) + 1;
 
-      const profile = buildProfile(this.survey, state, {
+      const profile = buildProfile(row.survey, state, {
         customerId: row.customerId,
         revision,
         updatedAt: now.toISOString(),
@@ -274,14 +284,16 @@ export class SessionService {
   }
 
   // ── сброс и профиль ─────────────────────────────────────────────
-  async reset(customerId: string): Promise<SessionView> {
+  async reset(customerId: string, version?: string): Promise<SessionView> {
     const now = new Date();
     await this.db.transaction(async (tx) => {
       await tx
         .update(sessions)
         .set({ status: "archived", archivedAt: now, updatedAt: now })
         .where(and(eq(sessions.customerId, customerId), eq(sessions.status, "active")));
-      await tx.insert(sessions).values({ customerId, surveyVersion: this.survey.version });
+      await tx
+        .insert(sessions)
+        .values({ customerId, surveyVersion: version ?? this.registry.current().version });
     });
     return this.getOrCreate(customerId);
   }

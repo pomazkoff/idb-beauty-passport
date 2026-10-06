@@ -4,15 +4,15 @@
  */
 import { getBranchQuestions } from "@idb/core";
 import { createDb, loadDotenv } from "@idb/db";
-import { survey } from "@idb/survey-config";
-import { registerSurveyVersion } from "./app.js";
 import { SessionService } from "./services/session.service.js";
+import { SurveyRegistry } from "./services/survey-registry.js";
 
 loadDotenv();
 
 const { db, close } = createDb();
-await registerSurveyVersion(db, survey);
-const svc = new SessionService(db, survey);
+const registry = new SurveyRegistry(db);
+const survey = await registry.init();
+const svc = new SessionService(db, registry);
 
 async function run(
   customer: string,

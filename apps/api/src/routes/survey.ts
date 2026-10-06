@@ -10,15 +10,18 @@ import {
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Config } from "../config.js";
+import { AppError } from "../errors.js";
+import type { SurveyRegistry } from "../services/survey-registry.js";
+import { isAdmin } from "./admin.js";
 
 /**
  * GET /survey?gender=female|male — конфиг, отфильтрованный под пол (ТЗ 9.2).
  * Без пола — только вопрос gender и метаданные. Кэшируется по ETag.
  */
-export async function surveyRoutes(app: FastifyInstance, opts: { survey: Survey; config: Config }) {
-  const { survey, config } = opts;
+export async function surveyRoutes(app: FastifyInstance, opts: { registry: SurveyRegistry; config: Config }) {
+  const { registry, config } = opts;
 
-  const build = (gender: GenderCode | null) => {
+  const build = (survey: Survey, gender: GenderCode | null) => {
     const base = getBaseQuestions(survey, gender);
     const branches = gender
       ? branchesForGender(survey, gender).map((b) => ({
@@ -63,14 +66,15 @@ export async function surveyRoutes(app: FastifyInstance, opts: { survey: Survey;
     };
   };
 
+  // Кэш по (версия, пол). Черновики не кэшируются — они меняются.
   const cache = new Map<string, { body: string; etag: string }>();
-  const get = (gender: GenderCode | null) => {
-    const k = gender ?? "none";
-    let c = cache.get(k);
+  const get = (survey: Survey, gender: GenderCode | null, cacheable: boolean) => {
+    const k = `${survey.version}|${gender ?? "none"}`;
+    let c = cacheable ? cache.get(k) : undefined;
     if (!c) {
-      const body = JSON.stringify({ data: build(gender) });
+      const body = JSON.stringify({ data: build(survey, gender) });
       c = { body, etag: `"${createHash("sha1").update(body).digest("hex")}"` };
-      cache.set(k, c);
+      if (cacheable) cache.set(k, c);
     }
     return c;
   };
@@ -80,15 +84,33 @@ export async function surveyRoutes(app: FastifyInstance, opts: { survey: Survey;
     {
       schema: {
         tags: ["survey"],
-        summary: "Конфиг опросника, отфильтрованный под пол",
-        querystring: z.object({ gender: z.enum(["female", "male"]).optional() }),
+        summary:
+          "Конфиг опросника, отфильтрованный под пол (version — предпросмотр, черновики только с X-Admin-Token)",
+        querystring: z.object({
+          gender: z.enum(["female", "male"]).optional(),
+          version: z.string().optional(),
+        }),
       },
     },
     async (req, reply) => {
-      const { gender } = req.query as { gender?: GenderCode };
-      const c = get(gender ?? null);
+      const { gender, version } = req.query as { gender?: GenderCode; version?: string };
+      let survey = registry.current();
+      let cacheable = true;
+      if (version && version !== survey.version) {
+        const row = await registry.getRow(version);
+        if (row.status === "draft") {
+          if (!isAdmin(req, config))
+            throw new AppError("FORBIDDEN", "Черновик доступен только с X-Admin-Token");
+          cacheable = false;
+        }
+        survey = await registry.get(version);
+      }
+      const c = get(survey, gender ?? null, cacheable);
       if (req.headers["if-none-match"] === c.etag) return reply.code(304).send();
-      reply.header("ETag", c.etag).header("Cache-Control", "public, max-age=300").type("application/json");
+      reply
+        .header("ETag", c.etag)
+        .header("Cache-Control", cacheable ? "public, max-age=300" : "no-store")
+        .type("application/json");
       return reply.send(c.body);
     },
   );

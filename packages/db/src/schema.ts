@@ -17,6 +17,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+export const surveyStatus = pgEnum("survey_status", ["draft", "published", "archived"]);
 export const sessionStatus = pgEnum("session_status", ["active", "archived"]);
 export const stage = pgEnum("stage", ["intro", "base", "result1", "passport", "result2"]);
 export const outboxStatus = pgEnum("outbox_status", [
@@ -28,13 +29,26 @@ export const outboxStatus = pgEnum("outbox_status", [
   "dead",
 ]);
 
-/** Зарегистрированные версии конфига. Сессия привязана к версии, с которой началась. */
-export const surveyVersions = pgTable("survey_versions", {
-  version: text("version").primaryKey(),
-  config: jsonb("config").notNull(),
-  checksum: text("checksum").notNull(),
-  publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
-});
+/**
+ * Версии опросника: draft → published → archived. Опубликована ровно одна.
+ * Сессия привязана к версии, с которой началась, и доживает на ней.
+ */
+export const surveyVersions = pgTable(
+  "survey_versions",
+  {
+    version: text("version").primaryKey(),
+    config: jsonb("config").notNull(),
+    checksum: text("checksum").notNull(),
+    status: surveyStatus("status").notNull().default("draft"),
+    notes: text("notes"),
+    /** Версия, из которой создан черновик. */
+    sourceVersion: text("source_version"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("survey_versions_one_published").on(t.status).where(sql`${t.status} = 'published'`)],
+);
 
 export const sessions = pgTable(
   "sessions",

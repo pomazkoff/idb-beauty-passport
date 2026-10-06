@@ -44,3 +44,6 @@ export function categoryLabel(s: Survey, gender: GenderCode, category: string): 
 export function questionsForGender(s: Survey, gender: GenderCode): Question[] {
   return [...s.base, ...branchesForGender(s, gender).flatMap((b) => b.questions)];
 }
+export { slugify, translit, uniqueSlug } from "./slug.js";
+export { checkFrozenCodes } from "./frozen.js";
+export { renderContentMap } from "./content-map.js";

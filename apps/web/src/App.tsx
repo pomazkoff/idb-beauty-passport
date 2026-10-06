@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Analytics, type AnalyticsEvent } from "./analytics.js";
 import { ApiClient, type Auth } from "./api/client.js";
 import { Intro, Question, Result1, Result2 } from "./components/screens.jsx";
@@ -20,7 +20,8 @@ export function createController(props: AppProps): QuizController {
 }
 
 export function App(props: AppProps) {
-  const ctrl = useMemo(() => props.controller ?? createController(props), [props.controller]);
+  // Контроллер создаётся один раз на монтирование; смена props после монтирования не пересоздаёт его.
+  const [ctrl] = useState(() => props.controller ?? createController(props));
   const state = useSyncExternalStore(ctrl.subscribe, ctrl.getState, ctrl.getState);
 
   useEffect(() => {

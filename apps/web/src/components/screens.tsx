@@ -7,6 +7,7 @@ const Html = ({
   as: Tag = "span",
   className,
 }: { html: string; as?: "span" | "h1" | "div" | "p"; className?: string }) => (
+  // biome-ignore lint/security/noDangerouslySetInnerHtml: разметка только из нашего конфига (<em>/<b>), не из пользовательского ввода
   <Tag className={className} dangerouslySetInnerHTML={{ __html: html }} />
 );
 
@@ -82,7 +83,6 @@ export function Question({
       <div className="qhint" id={`h-${question.key}`}>
         {isMulti ? ui.hintMulti : ui.hintSingle}
       </div>
-      {/* biome-ignore lint/a11y/useSemanticElements: стилизованные карточки-кнопки как в прототипе */}
       <div
         className={`opts ${isMulti ? "multi" : ""}`}
         role={isMulti ? "group" : "radiogroup"}
@@ -152,6 +152,7 @@ export function Meter({ survey, pct }: { survey: SurveyConfig; pct: number }) {
           {pct}%
         </span>
       </div>
+      {/* biome-ignore lint/a11y/useFocusableInteractive: индикатор только для чтения, фокус не нужен */}
       <div
         className="meter-bar"
         role="progressbar"

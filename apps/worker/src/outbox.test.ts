@@ -177,6 +177,24 @@ describe("OutboxProcessor", () => {
     expect(await new OutboxProcessor(db, sink).processBatch()).toMatchObject({ sent: 1 });
   });
 
+  it("зависшие sending (упавший воркер) возвращаются в обработку", async () => {
+    const o = await seed("stale", 1);
+    await db
+      .update(ensiOutbox)
+      .set({ status: "sending", lastAttemptAt: new Date(Date.now() - 11 * 60_000) })
+      .where(eq(ensiOutbox.id, o.id));
+    const fresh = await seed("fresh", 1);
+    await db
+      .update(ensiOutbox)
+      .set({ status: "sending", lastAttemptAt: new Date() })
+      .where(eq(ensiOutbox.id, fresh.id));
+    const sink = new MockEnsiSink();
+    const r = await new OutboxProcessor(db, sink).processBatch();
+    expect(r).toMatchObject({ claimed: 1, sent: 1 });
+    expect((await rowsOf("stale"))[0]).toMatchObject({ status: "sent" });
+    expect((await rowsOf("fresh"))[0]).toMatchObject({ status: "sending" }); // ещё в работе у другого воркера
+  });
+
   it("параллельные воркеры не отправляют одно задание дважды (SKIP LOCKED)", async () => {
     for (let i = 0; i < 6; i++) await seed(`h${i}`, 1);
     const sink = new MockEnsiSink();

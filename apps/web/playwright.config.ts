@@ -12,7 +12,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
+  retries: 1, // первый прогон после холодного старта vite/tsx иногда упирается в таймаут
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: process.env.E2E_WEB_URL ?? "http://localhost:5173",

@@ -5,9 +5,11 @@
  *   pnpm ensi:resync -- --dead        # перепоставить все dead
  * Ставит в очередь последнюю ревизию; воркер отправит.
  */
-import { createDb, ensiOutbox, profiles } from "@idb/db";
+import { createDb, ensiOutbox, loadDotenv, profiles } from "@idb/db";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { enqueueLatest } from "../outbox.js";
+
+loadDotenv();
 
 const args = process.argv.slice(2);
 const flag = (n: string) => {

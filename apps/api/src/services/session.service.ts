@@ -229,6 +229,8 @@ export class SessionService {
   ): Promise<BeautyProfile> {
     const now = new Date();
     return this.db.transaction(async (tx) => {
+      // UPDATE строки сессии первым — блокирует её до конца транзакции и сериализует
+      // конкурентные complete одного клиента, поэтому нумерация ревизий ниже без гонок.
       await tx
         .update(sessions)
         .set({
@@ -309,10 +311,17 @@ export class SessionService {
     };
   }
 
-  /** Удаление архивных сессий и событий старше retentionDays (ТЗ 9.3). */
+  /**
+   * Удаление архивных сессий и событий старше retentionDays (ТЗ 9.3).
+   * Сессии, на которые ссылаются профили, не удаляются: профили — история ревизий для ENSI,
+   * их каскадное удаление сбило бы нумерацию ревизий (ревью, 2026-10-06).
+   */
   async purgeOld(retentionDays: number): Promise<number> {
     const r = await this.db.execute(sql`
-      DELETE FROM sessions WHERE status = 'archived' AND archived_at < now() - make_interval(days => ${retentionDays})`);
+      DELETE FROM sessions s
+      WHERE s.status = 'archived'
+        AND s.archived_at < now() - make_interval(days => ${retentionDays})
+        AND NOT EXISTS (SELECT 1 FROM profiles p WHERE p.session_id = s.id)`);
     await this.db.execute(sql`
       DELETE FROM analytics_events WHERE server_ts < now() - make_interval(days => ${retentionDays})`);
     return Number((r as unknown as { count?: number }).count ?? 0);

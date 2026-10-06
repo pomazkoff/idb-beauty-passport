@@ -1,5 +1,20 @@
 import { z } from "zod";
 
+/** "true"/"1"/"yes"/"on" → true, "false"/"0"/"no"/"off"/"" → false. z.coerce.boolean() считал "false" истиной. */
+const envBool = (def: boolean) =>
+  z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v, ctx) => {
+      if (v === undefined || v === "") return def;
+      if (typeof v === "boolean") return v;
+      const s = v.trim().toLowerCase();
+      if (["true", "1", "yes", "on"].includes(s)) return true;
+      if (["false", "0", "no", "off"].includes(s)) return false;
+      ctx.addIssue({ code: "custom", message: `ожидалось true/false, получено "${v}"` });
+      return z.NEVER;
+    });
+
 const Env = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -14,11 +29,11 @@ const Env = z
     JWT_AUDIENCE: z.string().optional(),
     JWT_CUSTOMER_CLAIM: z.string().default("sub"),
     CORS_ORIGINS: z.string().default(""),
-    SWAGGER_ENABLED: z.coerce.boolean().default(false),
+    SWAGGER_ENABLED: envBool(false),
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(60),
-    SHOW_DRAFT_BADGE: z.coerce.boolean().default(true),
-    SHOW_TRAIT_SUBTITLE: z.coerce.boolean().default(true),
-    COUNT_SKIPPED_CATEGORY: z.coerce.boolean().default(true),
+    SHOW_DRAFT_BADGE: envBool(true),
+    SHOW_TRAIT_SUBTITLE: envBool(true),
+    COUNT_SKIPPED_CATEGORY: envBool(true),
     RETENTION_DAYS: z.coerce.number().int().positive().default(365),
   })
   .superRefine((e, ctx) => {

@@ -1,0 +1,1 @@
+ALTER TABLE "ensi_outbox" ADD COLUMN "last_attempt_at" timestamp with time zone;

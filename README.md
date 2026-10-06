@@ -17,7 +17,7 @@ docker compose up --build
 
 ```bash
 pnpm install
-cp .env.example .env            # DATABASE_URL, AUTH_MODE=dev
+cp .env.example .env            # DATABASE_URL, AUTH_MODE=dev — .env подхватывается автоматически (из корня монорепо)
 pnpm --filter "./packages/*" build
 pnpm db:migrate && pnpm db:seed
 pnpm dev                        # api :3000, worker, web :5173
@@ -34,7 +34,7 @@ pnpm dev                        # api :3000, worker, web :5173
 ## Структура
 
 ```
-apps/api            Fastify REST API, Prisma, auth, outbox
+apps/api            Fastify REST API, Drizzle, auth, outbox
 apps/worker         доставка профилей в ENSI
 apps/web            React: standalone-страница и web-компонент <idb-beauty-quiz>
 packages/core       чистый движок: ветвление, психотип, заполненность, виджеты, профиль

@@ -3,10 +3,12 @@
  * demo-p (мужчина, P, только база), demo-m (женщина, M, две категории).
  */
 import { getBranchQuestions } from "@idb/core";
-import { createDb } from "@idb/db";
+import { createDb, loadDotenv } from "@idb/db";
 import { survey } from "@idb/survey-config";
 import { registerSurveyVersion } from "./app.js";
 import { SessionService } from "./services/session.service.js";
+
+loadDotenv();
 
 const { db, close } = createDb();
 await registerSurveyVersion(db, survey);

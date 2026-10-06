@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { createDb } from "./client.js";
+import { loadDotenv } from "./env.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const migrationsFolder = resolve(here, "../drizzle");
@@ -18,6 +19,7 @@ export async function runMigrations(url = process.env.DATABASE_URL): Promise<voi
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
+  loadDotenv();
   runMigrations()
     .then(() => {
       console.log("✓ миграции применены");

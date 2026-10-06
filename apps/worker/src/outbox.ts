@@ -12,6 +12,8 @@ import { and, eq, inArray, lte, sql } from "drizzle-orm";
 
 export type OutboxOptions = {
   batchSize?: number;
+  /** Задание в статусе sending дольше этого срока считается зависшим (упавший воркер) и возвращается в failed. */
+  staleSendingMs?: number;
   maxAttempts?: number;
   baseDelayMs?: number;
   maxDelayMs?: number;
@@ -35,6 +37,7 @@ export function backoffMs(attempt: number, base = 60_000, max = 24 * 60 * 60 * 1
 
 export class OutboxProcessor {
   private readonly batchSize: number;
+  private readonly staleSendingMs: number;
   private readonly maxAttempts: number;
   private readonly baseDelayMs: number;
   private readonly maxDelayMs: number;
@@ -48,6 +51,7 @@ export class OutboxProcessor {
     o: OutboxOptions = {},
   ) {
     this.batchSize = o.batchSize ?? 20;
+    this.staleSendingMs = o.staleSendingMs ?? 10 * 60 * 1000;
     this.maxAttempts = o.maxAttempts ?? 10;
     this.baseDelayMs = o.baseDelayMs ?? 60_000;
     this.maxDelayMs = o.maxDelayMs ?? 24 * 60 * 60 * 1000;
@@ -56,9 +60,28 @@ export class OutboxProcessor {
     this.onMetric = o.onMetric ?? (() => {});
   }
 
+  /** Зависшие sending (воркер упал посреди пачки) → failed, повтор сразу. */
+  private async sweepStale() {
+    const threshold = new Date(this.now().getTime() - this.staleSendingMs);
+    const rows = await this.db
+      .update(ensiOutbox)
+      .set({
+        status: "failed",
+        lastError: "stale sending: воркер не завершил отправку",
+        nextAttemptAt: this.now(),
+      })
+      .where(and(eq(ensiOutbox.status, "sending"), lte(ensiOutbox.lastAttemptAt, threshold)))
+      .returning({ id: ensiOutbox.id });
+    if (rows.length) {
+      this.log.warn({ count: rows.length }, "ensi: возвращены зависшие sending");
+      this.onMetric("ensi_stale_sending_total", rows.length);
+    }
+  }
+
   /** Захватить пачку заданий. Отдельная транзакция, чтобы не держать блокировку на время HTTP. */
   private async claim() {
     const now = this.now();
+    await this.sweepStale();
     return this.db.transaction(async (tx) => {
       const rows = await tx
         .select({
@@ -75,7 +98,7 @@ export class OutboxProcessor {
       if (!rows.length) return rows;
       await tx
         .update(ensiOutbox)
-        .set({ status: "sending" })
+        .set({ status: "sending", lastAttemptAt: now })
         .where(
           inArray(
             ensiOutbox.id,

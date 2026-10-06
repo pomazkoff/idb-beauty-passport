@@ -325,6 +325,11 @@ export class QuizController {
       .then(task)
       .catch((e: unknown) => {
         const msg = e instanceof ApiRequestError ? e.error.message : (e as Error).message;
+        // Конфиг обновился на сервере — продолжать нельзя, предлагаем «Пройти заново» (DECISIONS).
+        if (e instanceof ApiRequestError && e.error.code === "SURVEY_VERSION_MISMATCH") {
+          this.set({ phase: "error", fatalError: msg, saveError: null });
+          return;
+        }
         this.set({ saveError: msg });
       })
       .finally(() => this.set({ pending: Math.max(0, this.state.pending - 1) }));
@@ -390,7 +395,11 @@ export class QuizController {
   }
 
   private scrollTop() {
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      /* jsdom */
+    }
   }
 
   destroy() {

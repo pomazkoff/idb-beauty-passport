@@ -1,7 +1,9 @@
-import { createDb, runMigrations } from "@idb/db";
+import { createDb, loadDotenv, runMigrations } from "@idb/db";
 import { survey } from "@idb/survey-config";
 import { buildApp, registerSurveyVersion } from "./app.js";
 import { loadConfig } from "./config.js";
+
+loadDotenv();
 
 const config = loadConfig();
 if (process.env.AUTO_MIGRATE === "true") await runMigrations(config.DATABASE_URL);

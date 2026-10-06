@@ -273,6 +273,26 @@ describe("сессия", () => {
   });
 });
 
+// ── ретеншн ──────────────────────────────────────────────────────────
+describe("purgeOld", () => {
+  it("удаляет старые архивные сессии без профилей, но не сессии с профилями", async () => {
+    await passBase("r1", "female", ["E", "E", "E"], "face"); // сессия с профилем
+    await call("POST", "/me/session:reset", "r1"); // архивирована
+    await put("r2", "gender", ["male"]);
+    await call("POST", "/me/session:reset", "r2"); // архив без профиля
+    await db.execute(
+      sql`UPDATE sessions SET archived_at = now() - interval '400 days' WHERE status = 'archived'`,
+    );
+    await app.sessionService.purgeOld(365);
+    const left = await db.execute(
+      sql`SELECT customer_id FROM sessions WHERE status = 'archived' ORDER BY customer_id`,
+    );
+    expect([...left].map((r) => (r as { customer_id: string }).customer_id)).toEqual(["r1"]);
+    const prof = (await call("GET", "/me/profile", "r1")).json().data;
+    expect(prof.profile.profile_revision).toBe(1);
+  });
+});
+
 // ── события ──────────────────────────────────────────────────────────
 describe("POST /events", () => {
   it("принимает пакет, привязывает к сессии, отвергает неизвестные имена", async () => {

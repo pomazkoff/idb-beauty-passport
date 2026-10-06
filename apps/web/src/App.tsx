@@ -65,7 +65,10 @@ export function App(props: AppProps) {
         {state.phase === "error" ? (
           <div className="screen">
             <div className="error-inline" role="alert">
-              Не удалось загрузить опросник: {state.fatalError}
+              {state.fatalError?.includes("версии")
+                ? "Опросник обновился. "
+                : "Не удалось загрузить опросник: "}
+              {state.fatalError}
             </div>
             <div className="nav">
               <button type="button" className="btn btn-primary" onClick={() => void ctrl.init()}>
@@ -119,7 +122,8 @@ export function App(props: AppProps) {
 
         {state.saveError && state.phase === "question" ? (
           <div className="error-inline" role="alert">
-            Не удалось сохранить ответ: {state.saveError}. Ответы продолжат отправляться автоматически.
+            Не удалось сохранить ответ: {state.saveError}. Проверьте связь — при завершении этапа мы вернём
+            Вас к несохранённому вопросу.
           </div>
         ) : null}
       </div>

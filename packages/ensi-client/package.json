@@ -5,13 +5,26 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "generate": "openapi-typescript openapi/ensi.yaml -o src/http/generated/ensi.d.ts"
   },
-  "dependencies": { "@idb/core": "workspace:*", "openapi-fetch": "^0.13.4" },
-  "devDependencies": { "openapi-typescript": "^7.4.4", "typescript": "^5.7.2", "vitest": "^2.1.8" }
+  "dependencies": {
+    "@idb/core": "workspace:*",
+    "openapi-fetch": "^0.13.4"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.4",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "@types/node": "^22.10.2"
+  }
 }

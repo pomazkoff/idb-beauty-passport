@@ -28,8 +28,10 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://idb:idb@postgres:5432/beauty_passport
       AUTH_MODE: dev
-      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+      CORS_ORIGINS: http://localhost:5173,http://localhost:8080,http://localhost:8081
       SWAGGER_ENABLED: "true"
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-dev-admin-token-change-me}
+      INTEGRATION_API_KEY: ${INTEGRATION_API_KEY:-dev-integration-key-change-me}
     ports: ["3000:3000"]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -51,6 +53,14 @@ services:
       dockerfile: docker/web.Dockerfile
       args: { VITE_API_BASE: "http://localhost:3000" }
     ports: ["8080:80"]
+    depends_on: [api]
+
+  admin:
+    build:
+      context: .
+      dockerfile: docker/admin.Dockerfile
+      args: { VITE_API_BASE: "http://localhost:3000", VITE_WEB_BASE: "http://localhost:8080" }
+    ports: ["8081:80"]
     depends_on: [api]
 
 volumes:

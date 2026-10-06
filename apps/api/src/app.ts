@@ -60,8 +60,8 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
     origin: config.corsOrigins.length ? config.corsOrigins : false,
-    methods: ["GET", "POST", "PUT", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "X-Customer-Id", "If-None-Match", "traceparent"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type", "X-Customer-Id", "X-Admin-Token", "X-Api-Key", "If-None-Match", "traceparent"],
     exposedHeaders: ["ETag", "x-request-id"],
   });
   await app.register(rateLimit, {

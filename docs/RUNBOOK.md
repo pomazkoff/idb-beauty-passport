@@ -39,23 +39,28 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 - `SWAGGER_ENABLED=false` в production (или за внутренним ingress).
 - `ENSI_SINK=http` + `ENSI_*` — см. `docs/ENSI.md`.
 - `SHOW_DRAFT_BADGE=false` в production (плашка «вопрос дописан» — для приёмки контента).
-- `RETENTION_DAYS` — архивные сессии и события старше N дней удаляются раз в сутки (api).
+- `RETENTION_DAYS` — раз в сутки api удаляет события старше N дней и архивные сессии старше N дней, на которые не ссылается профиль. Сессии с профилями остаются: каскад снёс бы ревизии ENSI.
 - `ADMIN_TOKEN` (≥16 символов) — вход в конструктор; пусто = админ-API выключен. Выдавать продакту лично, менять при смене команды.
 - `DATABASE_URL=pglite:<каталог>` (или `pglite:memory`) — встроенная база вместо PostgreSQL: один процесс, без конкурентного доступа; воркер outbox запускается внутри API (`OUTBOX_POLL_INTERVAL_MS`, по умолчанию 2000). **Только для демо, разработки и тестов** — в production нужен PostgreSQL.
 - `INTEGRATION_API_KEY` (≥16 символов) — ключ для ENSI (`X-Api-Key`); пусто = интеграционный API выключен.
 
 ## Встраивание в ЛК
 
+Контракт для команды ЛК — [`INTEGRATION.md`](INTEGRATION.md). Хост `quiz.iledebeaute.ru` ниже — пример, не зафиксированный прод-адрес. `POST /api/v1/events` вызывает сам web-компонент.
+
 ```html
 <script type="module" src="https://quiz.iledebeaute.ru/embed/idb-beauty-quiz.js"></script>
 <idb-beauty-quiz api-base="https://quiz.iledebeaute.ru" token="<JWT пользователя ЛК>"></idb-beauty-quiz>
 <script>
-  document.addEventListener("quiz:base-completed", (e) => rebuildWidgets(e.detail.widgets));
+  document.addEventListener("quiz:base-completed", (e) => {
+    const { priority, base } = e.detail.widgets;
+    rebuildWidgets(priority, base);
+  });
   document.addEventListener("quiz:category-completed", (e) => refreshRecommendations(e.detail));
 </script>
 ```
 
-Атрибуты: `inherit-fonts` (шрифты хоста), `no-fonts` (не подключать Google Fonts). Аналитика: события уходят в `window.dataLayer`, если он есть на хосте, и в `POST /api/v1/events`.
+Атрибуты: `inherit-fonts` (шрифты хоста), `no-fonts` (не подключать Google Fonts), на dev-стенде ещё `customer-id`. Рядом с ESM лежит `idb-beauty-quiz.iife.js`. Аналитика: при наличии `window.dataLayer` компонент пушит туда события и параллельно батчем вызывает `POST /api/v1/events`. Наружу ещё есть `quiz:closed` и `quiz:analytics`.
 
 ## Обновление контента опросника
 
@@ -81,10 +86,10 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 |---|---|---|
 | 401 на всех запросах | `AUTH_MODE`, JWKS доступен, `iss/aud` совпадают с токеном ЛК | `curl -H "Authorization: Bearer …" /api/v1/me/session` — тело ошибки содержит `meta.reason` |
 | CORS-ошибка в браузере | `CORS_ORIGINS` содержит origin ЛК (схема+хост+порт) | перезапустить api |
-| Профили не уходят в ENSI | `pnpm ensi:resync` (статистика), `ensi_outbox.last_error`, логи воркера | 5xx — ждём ретраев; 4xx — чинить маппинг/контракт → `pnpm ensi:resync -- --dead` |
+| Профили не уходят в ENSI | `pnpm ensi:resync` (статистика), `ensi_outbox.last_error`, логи воркера | 5xx — ждать ретраев; исчерпание попыток даёт `dead`. Прочий 4xx остаётся `failed` без повтора → после правки маппинга `pnpm ensi:resync -- --customer <id>` |
 | `dead` в outbox | `SELECT customer_id, revision, last_error FROM ensi_outbox WHERE status='dead'` | после исправления `pnpm ensi:resync -- --dead` |
-| 409 `SURVEY_VERSION_MISMATCH` у пользователя | задеплоена новая версия конфига | ожидаемо; пользователь жмёт «Пройти заново» |
-| Пользователь просит удалить данные | `customer_id` | `DELETE FROM sessions WHERE customer_id = $1` (каскадно удалит ответы, профили, outbox); события — `DELETE FROM analytics_events WHERE customer_id = $1` |
+| 409 `SURVEY_VERSION_MISMATCH` у пользователя | версия опросника этой сессии удалена из `survey_versions` | публикация новой версии сессию не рвёт; «Пройти заново» создаёт сессию на опубликованной |
+| Пользователь просит удалить данные | `customer_id` | `DELETE FROM sessions WHERE customer_id = $1` каскадом удалит ответы, профили и outbox (это сотрёт историю ревизий, в отличие от суточного retention); события — `DELETE FROM analytics_events WHERE customer_id = $1` |
 
 ## Тесты
 

@@ -1,4 +1,8 @@
-# Интеграция с ENSI
+# Доставка профиля в ENSI
+
+Этот файл — исходящий контур: воркер опросника отправляет `BeautyProfile` в ENSI. Встройка опросника в личный кабинет сюда не входит, она в [`INTEGRATION.md`](INTEGRATION.md). Методы, которыми web-компонент ходит в свой API, и сервисное чтение опросника по `X-Api-Key` — в [`API.md`](API.md).
+
+ENSI профиль не запрашивает у страницы ЛК. Страница получает коды виджетов событием `quiz:base-completed` / `quiz:category-completed`.
 
 ## Как это устроено
 
@@ -25,7 +29,7 @@ base:complete / passport:complete
 |---|---|---|
 | `mock` | хранит в памяти | тесты |
 | `file` | пишет `ENSI_FILE_DIR/<customer_id>/rev-N.json` и `latest.json` — ровно тот JSON, что ушёл бы в ENSI | локальная демонстрация, приёмка контракта (по умолчанию) |
-| `http` | `PUT ENSI_BASE_URL + ENSI_PROFILE_PATH` с заголовками авторизации, `Idempotency-Key`, `traceparent` | production |
+| `http` | `ENSI_PROFILE_METHOD` на `ENSI_BASE_URL + ENSI_PROFILE_PATH`, заголовки авторизации, `Idempotency-Key`, `traceparent` | когда есть контракт ENSI |
 
 Переменные для `http`:
 
@@ -37,45 +41,14 @@ ENSI_PROFILE_METHOD=PUT                                             # PUT | POST
 ENSI_AUTH_HEADER=Authorization
 ENSI_AUTH_VALUE=Bearer <service-token>
 ENSI_TIMEOUT_MS=10000
-ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # опционально, входящий поток
+ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # адаптер умеет GET; api и worker его не вызывают
 ```
 
-## Как ENSI забирает опросник (сервисный API)
+## Чтение опросника по ключу
 
-Авторизация — заголовок `X-Api-Key` (= `INTEGRATION_API_KEY` в env сервиса). Лимит 600 запросов/мин на ключ.
-Конверт `{ data, meta, errors }`. Черновики из конструктора не отдаются — только опубликованные и архивные версии.
+`GET /api/v1/integration/...` с заголовком `X-Api-Key` — отдельный контур. Web-компонент ЛК его не использует: вопросы он берёт из `GET /api/v1/survey`, ответы сдаёт методами сессии. Состав, лимит и отличие от `GET /me/profile` — в [`API.md`](API.md).
 
-| Метод и путь | Что отдаёт |
-|---|---|
-| `GET /api/v1/integration/surveys/current` | **Опубликованный опросник целиком**: оба пола, 5 базовых вопросов с голосами E/P/L/M, ветки Паспорта по полу, категории, психотипы, 17 виджетов с сегментами, тексты экранов, проценты заполненности. `ETag` = checksum версии → `If-None-Match` даёт 304. `meta.version`, `meta.publishedAt`. |
-| `GET /api/v1/integration/surveys` | Список версий (published/archived) с датами. |
-| `GET /api/v1/integration/surveys/{version}` | Опросник конкретной версии — чтобы интерпретировать старые ответы. |
-| `GET /api/v1/integration/customers/{customerId}/profile` | Последний `BeautyProfile` клиента (тот же контракт, что в push) + `meta.ensi` — статус доставки. Pull-альтернатива push-доставке. |
-
-Структура опросника (`data`) — схема `packages/survey-config/src/schema.ts` (Zod) и пример в `survey.v1.json`.
-Ключевые поля для фронтов, которые рисуют опросник сами:
-
-```
-base[]            5 вопросов; text и options — строка/массив или { female, male }
-  options[].vote      голос за психотип (psycho1..3)
-  options[].categoryCode   код категории (вопрос category)
-branches[]        { id, genders[], category, name, draft, questions[] }
-  questions[]     { key, topic, type: single|multi, skippable, draft, text, options[] }
-  options[]       { code, title, subtitle?, exclusive?, deprecated?, tags? }
-psychotypes       { E|P|L|M: { name, description } }
-widgets[]         { n, code, name, segment: "all" | ["E","P","L"...], why }
-completeness      { basePct, perCategoryPct, maxCategories }
-screens, ui       все тексты экранов и кнопок
-```
-
-Правила интерпретации (чтобы внешний рендерер вёл себя как эталонный):
-- `single` нельзя пропустить; `multi` можно (`skippable`), при этом ответ — пустой список.
-- `exclusive: true` снимает остальные выбранные варианты в `multi`.
-- `deprecated: true` — вариант не показывать, но старые ответы с ним валидны.
-- Смена пола сбрасывает все остальные ответы.
-- Психотип: M ≥ 2 → M; иначе максимум E/P/L; ничья или нет голосов → M. Виджеты: `segment` содержит психотип; для M — все не-`all`.
-- Заполненность: 0 до завершения базы, затем `basePct + perCategoryPct × min(пройдено, maxCategories)`.
-- Ответы отправляются в этот сервис (`PUT /api/v1/me/session/answers/{key}`) — он считает результат и пушит профиль в ENSI.
+`ENSI_FETCH_PATH` и метод адаптера `fetchProfile` описывают обратный GET профиля из ENSI. API и воркер этот метод не вызывают.
 
 ## Что отправляем
 
@@ -117,7 +90,7 @@ screens, ui       все тексты экранов и кнопок
    (добавляется в `HttpEnsiSink` перед отправкой).
 4. **Идемпотентность**: поддерживает ли эндпоинт `Idempotency-Key`; если нет — опираемся на `beauty_profile_revision`
    (ENSI должен игнорировать ревизию ≤ сохранённой).
-5. **Обратный поток** (опционально): нужно ли читать профиль из ENSI при первом входе клиента (`ENSI_FETCH_PATH`).
+5. **Обратный поток** (опционально): нужно ли читать профиль из ENSI при первом входе. `ENSI_FETCH_PATH` в адаптере есть, в сценарий входа не подключён — см. открытый вопрос в [`analyst-response.md`](analyst-response.md).
 6. **Сеть**: доступ воркера к ENSI (allowlist, mTLS), допустимая частота запросов (для `OUTBOX_BATCH_SIZE`).
 
 ## Эксплуатация
@@ -131,3 +104,4 @@ pnpm ensi:resync -- --all --since 2026-10-01
 
 Разбор `dead`: `SELECT customer_id, revision, attempts, last_error FROM ensi_outbox WHERE status='dead'` → причина в
 `last_error` (тело ответа ENSI обрезано до 2000 символов) → исправить на стороне ENSI/маппинга → `--dead`.
+Прочий 4xx в `dead` не переходит: статус остаётся `failed`, `next_attempt_at` уезжает в 9999 год. Такую ревизию возвращает `--customer`.

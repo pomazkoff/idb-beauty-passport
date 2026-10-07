@@ -1,8 +1,17 @@
 # ИЛЬ ДЕ БОТЭ · Опросник ЛК / Паспорт красоты
 
-Веб-сервис двухэтапного опросника для личного кабинета: база (психотип + набор виджетов ЛК) → Паспорт красоты (профиль по категориям). Профиль передаётся в ENSI через адаптер с гарантией доставки.
+Веб-сервис двухэтапного опросника для личного кабинета: база (психотип + набор виджетов ЛК) → Паспорт красоты (профиль по категориям). Готовый web-компонент сам ходит в API этого сервиса. Профиль в ENSI отправляет воркер.
 
-Полное ТЗ — [`docs/TZ.md`](docs/TZ.md). Журнал решений — [`docs/DECISIONS.md`](docs/DECISIONS.md). Эксплуатация — [`docs/RUNBOOK.md`](docs/RUNBOOK.md). Интеграция — [`docs/ENSI.md`](docs/ENSI.md).
+| Кому | Документ |
+|---|---|
+| Команда ЛК: встройка | [`docs/INTEGRATION.md`](docs/INTEGRATION.md) |
+| Где крутится сервис и что снаружи | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Все методы: кто вызывает и когда | [`docs/API.md`](docs/API.md) |
+| Приём профиля в ENSI | [`docs/ENSI.md`](docs/ENSI.md) |
+| Ответы аналитику и открытые вопросы | [`docs/analyst-response.md`](docs/analyst-response.md) |
+| Эксплуатация | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) |
+| Журнал решений | [`docs/DECISIONS.md`](docs/DECISIONS.md) |
+| Исходное ТЗ (есть расхождения с кодом) | [`docs/TZ.md`](docs/TZ.md) |
 
 ## Быстрый старт (только Node, без Docker и PostgreSQL)
 
@@ -12,7 +21,7 @@ pnpm demo
 # опросник     → http://localhost:5173/?customer=demo
 # конструктор  → http://localhost:5174          (токен: dev-admin-token-change-me)
 # API/Swagger  → http://localhost:3000/docs
-# ENSI-API     → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
+# чтение опросника ключом (web-компонент этот метод не вызывает) → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
 # профили «в ENSI» → ./.ensi-out/*.json;  база → ./.pgdata (встроенная PGlite);  pnpm demo --reset — начать заново
 ```
 
@@ -25,7 +34,7 @@ docker compose up --build
 # web      → http://localhost:8080          опросник (эталон / предпросмотр)
 # admin    → http://localhost:8081          конструктор (токен: dev-admin-token-change-me)
 # api      → http://localhost:3000/api/v1  (Swagger: http://localhost:3000/docs)
-# ENSI     → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
+# чтение опросника ключом → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
 # профили, ушедшие «в ENSI» (FileEnsiSink) → ./.ensi-out/*.json
 ```
 
@@ -43,16 +52,15 @@ pnpm dev                        # api :3000, worker, web :5173, admin :5174
 
 ## Как это устроено
 
-Сервис — источник правды по опроснику и результатам: продакт собирает опросник в **конструкторе** и публикует версию;
-**ENSI** и фронты ЛК забирают опубликованный опросник по сервисному API (`X-Api-Key`) и рисуют его сами (или встраивают
-эталонный web-компонент); ответы приходят в API сервиса, он считает психотип/виджеты/заполненность и **пушит профиль в ENSI**
-через outbox. Подробнее: `docs/ENSI.md`.
+Сервис хранит опросник и считает результат. Продакт публикует версию в конструкторе. Личный кабинет встраивает web-компонент `<idb-beauty-quiz>` и передаёт JWT пользователя. Компонент сам забирает конфиг (`GET /api/v1/survey`) и сдаёт ответы методами сессии. API пишет профиль в outbox, воркер отправляет его в ENSI.
+
+Сервисное чтение по `X-Api-Key` (`/api/v1/integration/...`) нужно системе, которая забирает текст опросника или профиль без JWT. Web-компонент эти маршруты не вызывает. Схема — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Что внутри
 
-- 63 вопроса в 10 ветках (3 общие для обоих полов) со стабильными кодами — `docs/content-map.md`
-- Тесты: 99 (контент) + 42 (движок, 100 % строк) + 29 (API, живой PostgreSQL) + 11 (воркер) + 9 (ENSI-адаптер) + 7 (контроллер UI) + e2e (Playwright + axe)
-- Встраиваемый web-компонент `<idb-beauty-quiz>` — 18–20 KB gzip
+- 63 вопроса в 10 ветках конфига (3 общие для обоих полов: `shared_sun`, `shared_perfume`, `shared_home`) со стабильными кодами — `docs/content-map.md`
+- Тесты: `pnpm test` (Vitest) и `pnpm test:e2e` (Playwright + axe)
+- Встраиваемый web-компонент `<idb-beauty-quiz>` — сборка `apps/web/dist/embed/`
 
 ## Структура
 

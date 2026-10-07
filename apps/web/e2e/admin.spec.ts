@@ -9,6 +9,31 @@ const API = process.env.E2E_API_URL ?? "http://localhost:3000";
 const TOKEN = process.env.ADMIN_TOKEN ?? "e2e-admin-token-0123456789";
 
 test.describe("Конструктор опросника", () => {
+  test("карта контента запрашивается с X-Admin-Token и открывается во вкладке", async ({ page }) => {
+    await page.goto(ADMIN_URL);
+    await page.fill("input.mono", TOKEN);
+    await page.click("button[type=submit]");
+    await expect(page.locator("table")).toBeVisible();
+    await page
+      .locator("tbody tr")
+      .filter({ has: page.locator(".badge.published") })
+      .getByRole("button", { name: "Открыть" })
+      .click();
+    await expect(page.getByRole("button", { name: "Карта контента" })).toBeVisible();
+
+    const reqPromise = page.waitForRequest((r) => r.url().includes("/content-map") && r.method() === "GET");
+    const [popup] = await Promise.all([
+      page.waitForEvent("popup"),
+      page.getByRole("button", { name: "Карта контента" }).click(),
+    ]);
+    const req = await reqPromise;
+    expect(req.headers()["x-admin-token"]).toBe(TOKEN);
+    expect(req.url()).not.toContain(TOKEN);
+    expect(new URL(req.url()).search).toBe("");
+    await expect(popup.locator("pre")).toContainText("Карта контента");
+    await popup.close();
+  });
+
   test("полный цикл версии", async ({ page }) => {
     const ver = `7.${Math.floor(Date.now() / 1000) % 100000}.${Math.floor(Math.random() * 100)}`;
     const marker = `[e2e ${ver}]`;

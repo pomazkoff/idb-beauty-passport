@@ -220,7 +220,7 @@ sequenceDiagram
   A->>API: POST /api/v1/admin/surveys/{version}/publish
   A->>API: DELETE /api/v1/admin/surveys/{version}
   A->>W: ссылка предпросмотра ?version=&admin=
-  Note over A,API: GET .../content-map открывается обычной ссылкой
+  A->>API: GET /api/v1/admin/surveys/{version}/content-map
   Note over A,API: POST .../validate конструктор не вызывает
 ```
 
@@ -234,9 +234,9 @@ sequenceDiagram
 | `POST /api/v1/admin/surveys/{version}/validate` | Проверка без сохранения. Кнопки в конструкторе нет: отчёт приходит с GET и PUT |
 | `POST /api/v1/admin/surveys/{version}/publish` | Публикация при пустом отчёте. Прежняя опубликованная версия становится архивной |
 | `DELETE /api/v1/admin/surveys/{version}` | Удалить черновик. Ответ 204 |
-| `GET /api/v1/admin/surveys/{version}/content-map` | Markdown карты кодов, `Content-Type: text/markdown` |
+| `GET /api/v1/admin/surveys/{version}/content-map` | Кнопка «Карта контента». Markdown, `Content-Type: text/markdown`. Конструктор шлёт `X-Admin-Token` и показывает текст в новой вкладке |
 
-Ссылка «Карта контента» в конструкторе — обычный переход по URL. Заголовок `X-Admin-Token` браузер при этом не отправляет, маршрут отвечает 401. Вызов с заголовком (curl, Swagger) карту отдаёт.
+Кнопка не кладёт токен в адрес. Запрос без заголовка и токен в query дают 401 — авторизация маршрута только по `X-Admin-Token`.
 
 Предпросмотр открывает standalone с `version` и `admin` в query. Дальше standalone ходит во внутренние методы сессии от имени случайного `customer=preview-...`.
 

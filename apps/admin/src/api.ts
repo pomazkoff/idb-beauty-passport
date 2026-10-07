@@ -83,11 +83,19 @@ async function req<T>(
   } catch {
     json = {};
   }
-  if (!res.ok) {
-    const e = json.errors?.[0];
-    throw new AdminApiError(res.status, e?.code ?? "HTTP_ERROR", e?.message ?? `HTTP ${res.status}`, e?.meta);
-  }
+  if (!res.ok) throw errorFrom(res, text);
   return { data: json.data as T, meta: json.meta };
+}
+
+function errorFrom(res: Response, text: string): AdminApiError {
+  let json: { errors?: { code: string; message: string; meta?: unknown }[] } = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = {};
+  }
+  const e = json.errors?.[0];
+  return new AdminApiError(res.status, e?.code ?? "HTTP_ERROR", e?.message ?? `HTTP ${res.status}`, e?.meta);
 }
 
 export const api = {
@@ -108,7 +116,15 @@ export const api = {
   validate: (v: string) => req<Report>("POST", `/admin/surveys/${v}/validate`).then((r) => r.data),
   publish: (v: string) => req<VersionSummary>("POST", `/admin/surveys/${v}/publish`).then((r) => r.data),
   remove: (v: string) => req<void>("DELETE", `/admin/surveys/${v}`),
-  contentMapUrl: (v: string) => `${API_BASE}/api/v1/admin/surveys/${v}/content-map`,
+  /** Markdown карты. Токен уходит заголовком, не query: голый переход по URL даёт 401. */
+  contentMap: async (v: string) => {
+    const url = `${API_BASE}/api/v1/admin/surveys/${encodeURIComponent(v)}/content-map`;
+    const res = await fetch(url, {
+      headers: { Accept: "text/markdown, application/json", "X-Admin-Token": getToken() },
+    });
+    if (!res.ok) throw errorFrom(res, await res.text());
+    return res.text();
+  },
   previewUrl: (v: string) =>
     `${WEB_BASE}/?version=${encodeURIComponent(v)}&admin=${encodeURIComponent(getToken())}&customer=preview-${v}-${Math.random().toString(36).slice(2, 8)}`,
 };

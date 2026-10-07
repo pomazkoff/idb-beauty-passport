@@ -427,7 +427,11 @@ describe("admin: версии опросника", () => {
     expect((await adm("DELETE", "/surveys/2.0.0")).statusCode).toBe(204);
   });
 
-  it("content-map отдаёт markdown", async () => {
+  it("content-map отдаёт markdown только по заголовку X-Admin-Token", async () => {
+    expect((await app.inject({ url: "/api/v1/admin/surveys/1.0.0/content-map" })).statusCode).toBe(401);
+    expect(
+      (await app.inject({ url: `/api/v1/admin/surveys/1.0.0/content-map?admin=${ADMIN}` })).statusCode,
+    ).toBe(401);
     const r = await adm("GET", "/surveys/1.0.0/content-map");
     expect(r.statusCode).toBe(200);
     expect(r.headers["content-type"]).toContain("text/markdown");

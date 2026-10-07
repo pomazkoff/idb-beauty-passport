@@ -29,6 +29,13 @@
       "when": 1791417000000,
       "tag": "0003_session_ensi_checked",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791418000000,
+      "tag": "0004_profile_per_customer",
+      "breakpoints": true
     }
   ]
 }

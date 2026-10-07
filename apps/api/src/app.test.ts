@@ -297,6 +297,10 @@ describe("сессия", () => {
       { revision: 1, status: "superseded" },
       { revision: 2, status: "pending" },
     ]);
+    const stored = rowsOf<{ n: number }>(
+      await db.execute(sql`SELECT count(*)::int AS n FROM profiles WHERE customer_id = 'c8'`),
+    );
+    expect(Number(stored[0]?.n)).toBe(1);
   });
 
   it("повтор категории не добавляет процент; три категории → 100", async () => {
@@ -321,9 +325,34 @@ describe("сессия", () => {
     expect(rows.map((x) => x.status)).toEqual(["archived", "active"]);
     const prof = (await call("GET", "/me/profile", "c10")).json().data;
     expect(prof.profile.profile_revision).toBe(1);
-    // новая база даёт ревизию 2
+    expect(prof.profile.psychotype.code).toBe("E");
+    // повторное прохождение обновляет тот же профиль, а не заводит второй
     const p2 = await passBase("c10", "male", ["P", "P", "P"], "face");
-    expect(p2.profile_revision).toBe(2);
+    expect(p2).toMatchObject({
+      customer_id: "c10",
+      profile_revision: 2,
+      psychotype: { code: "P" },
+      primary_category: "face",
+    });
+    const stored = rowsOf<{ n: number; revision: number }>(
+      await db.execute(
+        sql`SELECT count(*)::int AS n, max(revision) AS revision FROM profiles WHERE customer_id = 'c10'`,
+      ),
+    );
+    expect(Number(stored[0]?.n)).toBe(1);
+    expect(Number(stored[0]?.revision)).toBe(2);
+    const again = (await call("GET", "/me/profile", "c10")).json().data;
+    expect(again.profile.psychotype.code).toBe("P");
+    expect(again.ensi).toMatchObject({ status: "pending", revision: 2 });
+    const out = rowsOf<{ revision: number; status: string }>(
+      await db.execute(
+        sql`SELECT revision, status FROM ensi_outbox WHERE customer_id = 'c10' ORDER BY revision`,
+      ),
+    );
+    expect(out).toEqual([
+      { revision: 1, status: "superseded" },
+      { revision: 2, status: "pending" },
+    ]);
   });
 });
 

@@ -12,7 +12,7 @@
 | Админ-UI вне объёма, контент только через JSON и PR | Конструктор `apps/admin`, версии в БД. `survey.v1.json` — сид |
 | `packages/core` считает результат и на фронте | В рантайме считает API. Компонент показывает `derived` и `BeautyProfile` |
 | 13 веток-копий | 10 записей в конфиге, три общие: `shared_sun`, `shared_perfume`, `shared_home` |
-| `POST /sessions/reset`, в ENSI сразу новый снимок | `POST /api/v1/me/session:reset`. Очередь ENSI пополняют только `base:complete` и `passport:complete` |
+| `POST /sessions/reset`, в ENSI сразу новый снимок | `POST /api/v1/me/session:reset` архивирует сессию и профиль не трогает. Следующее завершение обновляет ту же строку профиля и делает upsert в ENSI |
 | В сессии есть `currentQuestionKey` | Нет. Компонент сам находит первый неотвеченный вопрос |
 | Оптимистичный кэш в `sessionStorage` | Кэш только в памяти контроллера |
 | Атрибут `theme`, бандл `embed.js`, query `customer_token` | Атрибутов темы нет. Файлы `idb-beauty-quiz.js` и `idb-beauty-quiz.iife.js`. Standalone: `?token=` и `?customer=` |

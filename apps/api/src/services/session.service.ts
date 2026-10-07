@@ -248,7 +248,7 @@ export class SessionService {
           payload: { ...profile, customer_id: customerId, profile_revision: revision },
           createdAt: now,
         })
-        .onConflictDoNothing({ target: [profiles.customerId, profiles.revision] })
+        .onConflictDoNothing({ target: profiles.customerId })
         .returning({ id: profiles.id });
       if (stored) {
         await tx.insert(ensiOutbox).values({
@@ -428,8 +428,9 @@ export class SessionService {
   }
 
   /**
-   * В одной транзакции: обновить сессию, записать новую ревизию профиля,
-   * положить задание в outbox, пометить старые pending того же клиента superseded (ТЗ 10.3).
+   * В одной транзакции: обновить сессию и тот же профиль клиента (upsert),
+   * положить задание в outbox, пометить старые pending того же клиента superseded.
+   * Новая строка profiles не создаётся: у клиента один профиль на всё время.
    */
   private async persistStage(
     row: SessionRow & { survey: Survey },
@@ -450,14 +451,13 @@ export class SessionService {
         })
         .where(eq(sessions.id, row.id));
 
-      const [last] = await tx
-        .select({ revision: profiles.revision })
+      const [existing] = await tx
+        .select({ id: profiles.id, revision: profiles.revision })
         .from(profiles)
         .where(eq(profiles.customerId, row.customerId))
-        .orderBy(desc(profiles.revision))
         .limit(1)
         .for("update");
-      const revision = (last?.revision ?? 0) + 1;
+      const revision = (existing?.revision ?? 0) + 1;
 
       const profile = buildProfile(row.survey, state, {
         customerId: row.customerId,
@@ -465,10 +465,25 @@ export class SessionService {
         updatedAt: now.toISOString(),
       });
 
-      const [p] = await tx
-        .insert(profiles)
-        .values({ customerId: row.customerId, sessionId: row.id, revision, payload: profile, createdAt: now })
-        .returning({ id: profiles.id });
+      let profileId = existing?.id;
+      if (existing) {
+        await tx
+          .update(profiles)
+          .set({ sessionId: row.id, revision, payload: profile })
+          .where(eq(profiles.id, existing.id));
+      } else {
+        const [p] = await tx
+          .insert(profiles)
+          .values({
+            customerId: row.customerId,
+            sessionId: row.id,
+            revision,
+            payload: profile,
+            createdAt: now,
+          })
+          .returning({ id: profiles.id });
+        profileId = p!.id;
+      }
 
       await tx
         .update(ensiOutbox)
@@ -476,7 +491,7 @@ export class SessionService {
         .where(
           and(eq(ensiOutbox.customerId, row.customerId), inArray(ensiOutbox.status, ["pending", "failed"])),
         );
-      await tx.insert(ensiOutbox).values({ profileId: p!.id, customerId: row.customerId, revision });
+      await tx.insert(ensiOutbox).values({ profileId: profileId!, customerId: row.customerId, revision });
 
       return profile;
     });
@@ -503,7 +518,10 @@ export class SessionService {
     const p = await this.db.query.profiles.findFirst({
       where: eq(profiles.customerId, customerId),
       orderBy: desc(profiles.revision),
-      with: { outbox: true },
+      with: {
+        // Одна строка профиля и несколько доставок: статус берём у старшей ревизии.
+        outbox: { orderBy: (row, { desc: byRevision }) => [byRevision(row.revision)] },
+      },
     });
     if (!p)
       return {

@@ -65,7 +65,12 @@ sequenceDiagram
   W-->>User: событие quiz:category-completed
   User->>W: Пройти заново
   W->>API: POST /api/v1/me/session:reset
+  Note over API: сессия пустая; строка профиля и запись в ENSI остаются
   W->>API: GET /api/v1/survey
+  User->>W: заново отвечает базу
+  W->>API: POST /api/v1/me/session/base:complete
+  Note over API: UPDATE той же строки profiles, revision + 1, outbox pending
+  API->>ENSI: воркер upsertProfile того же customer_id
   Note over W,API: POST /api/v1/events пачками, каждые 2 с и при закрытии вкладки
 ```
 
@@ -76,10 +81,10 @@ sequenceDiagram
 | `GET /api/v1/me/session` | Монтирование. Ещё раз после `base:complete`, после `passport:complete` и если завершение этапа вернуло ошибку | Сессия. Пустой вход залогиненного клиента читает профиль из ENSI и открывает `result1` или `result2`. Нет профиля, пустой file-sink и ошибка ENSI оставляют `intro` и отвечают 200 |
 | `GET /api/v1/survey` | Сразу после сессии, с полом из `derived.gender`. Повторно после ответа на `gender`, если пол в конфиге другой. После сброса — без пола | Конфиг под пол. Без пола в запросе — только вопрос `gender` |
 | `PUT /api/v1/me/session/answers/{questionKey}` | Каждый выбор single, «Далее» на multi и «Пропустить». Запросы идут очередью, по одному | Сессия и `meta.genderReset` |
-| `POST /api/v1/me/session/base:complete` | Отвечен последний вопрос базы | `BeautyProfile`. В той же транзакции — ревизия профиля и строка outbox |
+| `POST /api/v1/me/session/base:complete` | Отвечен последний вопрос базы | `BeautyProfile`. Та же строка профиля клиента обновляется, в outbox встаёт доставка |
 | `POST /api/v1/me/session/passport:start` | «Собрать Паспорт» или «добавить категорию», тело `{ "category" }` | Сессия со стадией `passport` |
-| `POST /api/v1/me/session/passport:complete` | Отвечен или пропущен каждый вопрос категории, тело `{ "category" }` | `BeautyProfile` и новая ревизия в outbox |
-| `POST /api/v1/me/session:reset` | «Пройти заново» | Новая пустая сессия. Старая архивируется. В ENSI ничего не ставится, сохранённый профиль заново не читается |
+| `POST /api/v1/me/session/passport:complete` | Отвечен или пропущен каждый вопрос категории, тело `{ "category" }` | `BeautyProfile`. Та же строка профиля обновляется, в outbox — новая доставка |
+| `POST /api/v1/me/session:reset` | «Пройти заново» | Новая пустая сессия. Старая архивируется. Профиль клиента не удаляется и в ENSI не уходит; следующее завершение обновит ту же запись |
 | `POST /api/v1/events` | Пачка до 100 событий, debounce 2 с, повтор при `pagehide` и скрытии вкладки (`fetch` с `keepalive`) | `202`, `{ "data": { "accepted" } }` |
 
 `GET /survey` для опубликованной версии идёт без JWT: компонент шлёт только `If-None-Match` и, в предпросмотре черновика, `X-Admin-Token`. Остальные методы таблицы требуют JWT (или `X-Customer-Id` на dev-стенде).
@@ -160,8 +165,8 @@ sequenceDiagram
   participant Worker as Воркер
   participant ENSI as ENSI
 
-  API->>DB: base:complete или passport:complete
-  Note over DB: profiles ревизия N, outbox pending
+  API->>DB: base:complete, passport:complete или завершение после «Пройти заново»
+  Note over DB: UPDATE единственной строки profiles, revision + 1, outbox pending
   Note over DB: прежние pending и failed этого клиента → superseded
   Worker->>DB: poll OUTBOX_POLL_INTERVAL_MS
   Worker->>ENSI: ENSI_PROFILE_METHOD ENSI_BASE_URL + ENSI_PROFILE_PATH

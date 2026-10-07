@@ -7,13 +7,15 @@ ENSI профиль не запрашивает у страницы ЛК. Стр
 ## Как это устроено
 
 ```
-base:complete / passport:complete
-        │  одна транзакция
+base:complete / passport:complete / завершение после «Пройти заново»
+        │  одна транзакция: UPDATE единственной строки profiles, revision + 1
+        │  старые pending/failed этого клиента → superseded
         ▼
- profiles (ревизия N)  +  ensi_outbox (pending)      ← старые pending/failed того же клиента → superseded
+ profiles (одна строка на customer_id)  +  ensi_outbox (pending)
         │
         ▼  apps/worker: poll каждые OUTBOX_POLL_INTERVAL_MS, FOR UPDATE SKIP LOCKED
  EnsiSink.upsertProfile(BeautyProfile, { idempotencyKey: "<customer_id>:<revision>", traceId })
+        │  тот же customer_id: в ENSI это обновление профиля, не второй профиль
         │
         ├─ 2xx                → sent (external_id из data.id, если есть)
         ├─ 5xx / 429 / сеть   → failed, повтор через 1 мин → 2 → 4 … ≤ 24 ч; после OUTBOX_MAX_ATTEMPTS → dead
@@ -88,9 +90,8 @@ ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # GET при
    Нужен OpenAPI-контракт → положить в `packages/ensi-client/openapi/ensi.yaml`, выполнить
    `pnpm --filter @idb/ensi-client generate`, подправить `mapping.ts` под реальные поля (тесты там же).
 2. **Авторизация сервис-сервис**: имя заголовка и значение/способ получения токена (`ENSI_AUTH_HEADER` / `ENSI_AUTH_VALUE`).
-3. **Идентификатор клиента**: id из клейма JWT ЛК совпадает с id клиента в ENSI. Отдельный эндпоинт маппинга не предусмотрен.
-4. **Идемпотентность**: поддерживает ли эндпоинт `Idempotency-Key`; если нет — опираемся на `beauty_profile_revision`
-   (ENSI должен игнорировать ревизию ≤ сохранённой).
+3. **Идентификатор клиента** подтверждён: id из клейма JWT ЛК равен id клиента в ENSI. Отдельный эндпоинт маппинга не нужен. Повторное прохождение обновляет профиль этого id (upsert), а не создаёт второй.
+4. **Идемпотентность**: `Idempotency-Key` равен `<customer_id>:<profile_revision>`. Повтор той же ревизии не должен создавать второй профиль. Новая ревизия того же клиента — обновление (upsert). Если эндпоинт ключ не поддерживает, ENSI игнорирует ревизию ≤ сохранённой.
 5. **Чтение при входе**: `GET` по `ENSI_FETCH_PATH`. Тело — `BeautyProfile` либо `{ "data": { "beauty_profile": … } }`. 404 — профиля нет. Импортированная ревизия в outbox пишется как `sent` и повторно не отправляется.
 6. **Сеть**: доступ воркера и API к ENSI (allowlist, mTLS), допустимая частота запросов (для `OUTBOX_BATCH_SIZE`).
 

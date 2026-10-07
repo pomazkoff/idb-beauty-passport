@@ -1,6 +1,6 @@
 /**
  * Аутентификация (ТЗ 9.1).
- *  jwt — Bearer-токен ЛК: подпись (JWKS или PEM), iss/aud/exp, customer_id из клейма.
+ *  jwt — токен выпускает backend ЛК. Здесь только проверка: JWKS или PEM (RS256), iss/aud/exp, customer_id из клейма.
  *  dev — заголовок X-Customer-Id; запрещён в production на уровне конфига.
  */
 import type { FastifyInstance, FastifyRequest } from "fastify";

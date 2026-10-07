@@ -1,7 +1,7 @@
 /**
  * Web-компонент <idb-beauty-quiz> (ТЗ 8.1).
  *
- *   <idb-beauty-quiz api-base="https://quiz.iledebeaute.ru" token="<JWT>" inherit-fonts></idb-beauty-quiz>
+ *   <idb-beauty-quiz api-base="https://beauty-api.iledebeaute.ru" token="<JWT>" inherit-fonts></idb-beauty-quiz>
  *
  * Атрибуты: api-base (обяз.), token | customer-id, inherit-fonts, no-fonts (не подключать Google Fonts).
  * События (CustomEvent, detail = BeautyProfile | undefined, bubbles+composed):

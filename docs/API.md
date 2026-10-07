@@ -23,15 +23,28 @@ OpenAPI: `GET /api/v1/openapi.json` и Swagger UI `/docs`, если `SWAGGER_ENA
 
 Страница ЛК эти методы не вызывает. Их вызывает `apps/web/src/api/client.ts` из контроллера `apps/web/src/state/controller.ts`.
 
-Ниже — порядок одного прохода. `GET /me/profile` в этой последовательности нет: компонент его не запрашивает, профиль он получает из `base:complete` и `passport:complete`.
+Ниже — порядок одного прохода. Профиль только что завершённого этапа компонент берёт из ответа `base:complete` и `passport:complete`. `GET /me/profile` он вызывает, когда сессия уже на `result1` или `result2`: так событие для ЛК собирается и при входе в готовый результат.
 
 ```mermaid
 sequenceDiagram
   actor User as Пользователь
   participant W as "idb-beauty-quiz"
   participant API as API опросника
+  participant ENSI as ENSI
 
   W->>API: GET /api/v1/me/session
+  alt пустая сессия, не предпросмотр и не «Пройти заново»
+    API->>ENSI: fetchProfile
+    alt профиль собран
+      API-->>W: result1 или result2
+    else нет профиля, file-sink без файла, или ошибка ENSI
+      API-->>W: intro, HTTP 200
+    end
+  end
+  opt стадия result1 или result2
+    W->>API: GET /api/v1/me/profile
+    W-->>User: quiz:base-completed или quiz:category-completed
+  end
   W->>API: GET /api/v1/survey?gender=
   User->>W: Начать
   Note over W: HTTP нет, стадия base только в памяти
@@ -60,13 +73,13 @@ sequenceDiagram
 
 | Метод | Когда вызывает компонент | Ответ |
 |---|---|---|
-| `GET /api/v1/me/session` | Монтирование. Ещё раз после `base:complete`, после `passport:complete` и если завершение этапа вернуло ошибку | Сессия. Если активной нет — создаётся пустая, стадия `intro` |
+| `GET /api/v1/me/session` | Монтирование. Ещё раз после `base:complete`, после `passport:complete` и если завершение этапа вернуло ошибку | Сессия. Пустой вход залогиненного клиента читает профиль из ENSI и открывает `result1` или `result2`. Нет профиля, пустой file-sink и ошибка ENSI оставляют `intro` и отвечают 200 |
 | `GET /api/v1/survey` | Сразу после сессии, с полом из `derived.gender`. Повторно после ответа на `gender`, если пол в конфиге другой. После сброса — без пола | Конфиг под пол. Без пола в запросе — только вопрос `gender` |
 | `PUT /api/v1/me/session/answers/{questionKey}` | Каждый выбор single, «Далее» на multi и «Пропустить». Запросы идут очередью, по одному | Сессия и `meta.genderReset` |
 | `POST /api/v1/me/session/base:complete` | Отвечен последний вопрос базы | `BeautyProfile`. В той же транзакции — ревизия профиля и строка outbox |
 | `POST /api/v1/me/session/passport:start` | «Собрать Паспорт» или «добавить категорию», тело `{ "category" }` | Сессия со стадией `passport` |
 | `POST /api/v1/me/session/passport:complete` | Отвечен или пропущен каждый вопрос категории, тело `{ "category" }` | `BeautyProfile` и новая ревизия в outbox |
-| `POST /api/v1/me/session:reset` | «Пройти заново» | Новая пустая сессия. Старая архивируется. В ENSI ничего не ставится |
+| `POST /api/v1/me/session:reset` | «Пройти заново» | Новая пустая сессия. Старая архивируется. В ENSI ничего не ставится, сохранённый профиль заново не читается |
 | `POST /api/v1/events` | Пачка до 100 событий, debounce 2 с, повтор при `pagehide` и скрытии вкладки (`fetch` с `keepalive`) | `202`, `{ "data": { "accepted" } }` |
 
 `GET /survey` для опубликованной версии идёт без JWT: компонент шлёт только `If-None-Match` и, в предпросмотре черновика, `X-Admin-Token`. Остальные методы таблицы требуют JWT (или `X-Customer-Id` на dev-стенде).
@@ -113,7 +126,7 @@ sequenceDiagram
 
 ### `GET /api/v1/me/profile`
 
-Контур: доступен держателю JWT этого пользователя. Web-компонент не вызывает.
+Контур: держатель JWT этого пользователя. Web-компонент вызывает его при монтировании, если стадия сессии `result1` или `result2`, и кладёт `BeautyProfile` в `quiz:base-completed` или `quiz:category-completed`. Ошибка этого запроса экран результата не снимает: экран уже собран из сессии. Сразу после `base:complete` и `passport:complete` компонент берёт профиль из ответа этих методов и `GET /me/profile` не повторяет.
 
 Возвращает последний профиль и состояние доставки:
 
@@ -163,7 +176,32 @@ sequenceDiagram
 
 Шаблон пути по умолчанию в документации адаптера: `/api/v1/customers/{customer_id}/beauty-profile`. Метод по умолчанию `PUT`. Заголовки: авторизация из env, `Idempotency-Key: <customer_id>:<revision>`, `traceparent`. Тело и список того, что нужно от ENSI, — [`ENSI.md`](ENSI.md).
 
-`GET` по `ENSI_FETCH_PATH` реализован в адаптере (`fetchProfile`) и тестами адаптера закрыт. Ни API, ни воркер его не вызывают: при входе компонент читает сессию из базы опросника.
+`GET` по `ENSI_FETCH_PATH` вызывает API на `GET /me/session`, когда у клиента ещё нет прохождения: пустая сессия на стадии `intro`, это не предпросмотр черновика и не сессия после «Пройти заново».
+
+```mermaid
+sequenceDiagram
+  participant W as "idb-beauty-quiz"
+  participant API as API опросника
+  participant ENSI as ENSI
+  participant DB as PostgreSQL
+
+  W->>API: GET /api/v1/me/session
+  API->>ENSI: fetchProfile(customer_id)
+  alt профиль есть и база из него собирается
+    API->>DB: ответы, профиль, outbox status=sent
+    API-->>W: result1 или result2
+  else 404, пустое тело, file-sink без latest.json
+    API->>DB: пустая сессия, повтор не нужен
+    API-->>W: intro
+  else сеть, 5xx, прочий сбой
+    API->>DB: пустая сессия, следующий вход повторит чтение
+    API-->>W: intro
+  end
+```
+
+`customer_id` в профиле должен совпасть с id из JWT. Чужой id пропускается, сессия остаётся пустой. Ответы, которые текущий опросник уже не принимает, пропускаются. Если базу собрать нельзя, опросник открывается с начала. Уже начатая сессия и сессия с ответами профилем не затираются. Импорт пишет строку outbox сразу со статусом `sent`: воркер этот профиль в ENSI повторно не отправляет.
+
+File-sink читает `ENSI_FILE_DIR/<customer_id>/latest.json`. Файла нет или он не читается — `fetchProfile` возвращает `null`, опросник открывается с начала. Ошибка ENSI не превращает `GET /me/session` в 500.
 
 ## Сервисное чтение
 

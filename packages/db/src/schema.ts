@@ -68,6 +68,12 @@ export const sessions = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /**
+     * true — чтение профиля из ENSI для этой сессии уже завершилось (профиль импортирован,
+     * профиля нет, либо сессия создана «Пройти заново» и импорт не нужен).
+     * false — ENSI был недоступен, следующий вход повторит чтение.
+     */
+    ensiChecked: boolean("ensi_checked").notNull().default(false),
   },
   (t) => [
     index("sessions_customer_status_idx").on(t.customerId, t.status),

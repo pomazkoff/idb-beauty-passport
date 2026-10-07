@@ -5,6 +5,7 @@ import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { type Db, surveyVersions } from "@idb/db";
+import { type EnsiSink, createSinkFromEnv } from "@idb/ensi-client";
 import { type Survey, survey as defaultSurvey, validateSurvey } from "@idb/survey-config";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
@@ -32,6 +33,8 @@ export type BuildOptions = {
   db: Db;
   authenticate?: Authenticator;
   logger?: boolean | object;
+  /** Чтение профиля при входе. По умолчанию — адаптер из ENSI_SINK. */
+  sink?: EnsiSink;
 };
 
 export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
@@ -132,7 +135,8 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
   );
 
   const metrics = new Metrics();
-  const service = new SessionService(db, registry);
+  const sink = opts.sink ?? createSinkFromEnv();
+  const service = new SessionService(db, registry, sink, app.log);
   app.decorate("sessionService", service);
   app.decorate("surveyRegistry", registry);
 

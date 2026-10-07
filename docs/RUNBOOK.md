@@ -35,7 +35,7 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 
 - `AUTH_MODE=jwt` + `JWT_JWKS_URL` **или** `JWT_PUBLIC_KEY_PEM`, `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_CUSTOMER_CLAIM` (по умолчанию `sub`).
   `AUTH_MODE=dev` (заголовок `X-Customer-Id`) в `NODE_ENV=production` **не стартует**.
-- `CORS_ORIGINS` — домены ЛК через запятую. Пусто = CORS выключен (только same-origin).
+- `CORS_ORIGINS` — origin-ы через запятую. В production: `https://beauty-quiz.iledebeaute.ru` и origin страницы ЛК, если виджет встроен на другом хосте. Пусто = CORS выключен (только same-origin). `localhost` в `.env.example` и Docker Compose — локальный стенд.
 - `SWAGGER_ENABLED=false` в production (или за внутренним ingress).
 - `ENSI_SINK=http` + `ENSI_*` — см. `docs/ENSI.md`.
 - `SHOW_DRAFT_BADGE=false` в production (плашка «вопрос дописан» — для приёмки контента).
@@ -46,11 +46,11 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 
 ## Встраивание в ЛК
 
-Контракт для команды ЛК — [`INTEGRATION.md`](INTEGRATION.md). Хост `quiz.iledebeaute.ru` ниже — пример, не зафиксированный прод-адрес. `POST /api/v1/events` вызывает сам web-компонент.
+Контракт для команды ЛК — [`INTEGRATION.md`](INTEGRATION.md). Статика — `https://beauty-quiz.iledebeaute.ru`, API — `https://beauty-api.iledebeaute.ru`. `POST /api/v1/events` вызывает сам web-компонент.
 
 ```html
-<script type="module" src="https://quiz.iledebeaute.ru/embed/idb-beauty-quiz.js"></script>
-<idb-beauty-quiz api-base="https://quiz.iledebeaute.ru" token="<JWT пользователя ЛК>"></idb-beauty-quiz>
+<script type="module" src="https://beauty-quiz.iledebeaute.ru/embed/idb-beauty-quiz.js"></script>
+<idb-beauty-quiz api-base="https://beauty-api.iledebeaute.ru" token="<JWT пользователя ЛК>"></idb-beauty-quiz>
 <script>
   document.addEventListener("quiz:base-completed", (e) => {
     const { priority, base } = e.detail.widgets;

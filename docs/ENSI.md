@@ -41,14 +41,14 @@ ENSI_PROFILE_METHOD=PUT                                             # PUT | POST
 ENSI_AUTH_HEADER=Authorization
 ENSI_AUTH_VALUE=Bearer <service-token>
 ENSI_TIMEOUT_MS=10000
-ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # адаптер умеет GET; api и worker его не вызывают
+ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # GET при пустом входе, см. ниже
 ```
 
 ## Чтение опросника по ключу
 
 `GET /api/v1/integration/...` с заголовком `X-Api-Key` — отдельный контур. Web-компонент ЛК его не использует: вопросы он берёт из `GET /api/v1/survey`, ответы сдаёт методами сессии. Состав, лимит и отличие от `GET /me/profile` — в [`API.md`](API.md).
 
-`ENSI_FETCH_PATH` и метод адаптера `fetchProfile` описывают обратный GET профиля из ENSI. API и воркер этот метод не вызывают.
+`ENSI_FETCH_PATH` и `fetchProfile` — чтение профиля при пустом входе. Его вызывает `GET /api/v1/me/session`, не воркер. Подробности и диаграмма — в [`API.md`](API.md). File-sink читает `latest.json` и при отсутствии файла возвращает `null`.
 
 ## Что отправляем
 
@@ -80,18 +80,19 @@ ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # адапт
 `attributes` — плоские поля для сегментации/CRM; `beauty_profile` — полный контракт для хранения как JSON.
 Коды вариантов и ключи вопросов — в `docs/content-map.md`.
 
-## Что нужно получить от команды ENSI (блокирует только переключение на `http`)
+## Зависимость от команды ENSI
+
+Контракт приёма профиля принадлежит ENSI. Пока он не передан, `ENSI_SINK` остаётся `file`, а чтение при входе для file-sink — это `latest.json` в `ENSI_FILE_DIR`.
 
 1. **Сервис и эндпоинт**, принимающий профиль клиента: Customers (атрибуты/кастомные поля) или отдельный сервис.
    Нужен OpenAPI-контракт → положить в `packages/ensi-client/openapi/ensi.yaml`, выполнить
    `pnpm --filter @idb/ensi-client generate`, подправить `mapping.ts` под реальные поля (тесты там же).
 2. **Авторизация сервис-сервис**: имя заголовка и значение/способ получения токена (`ENSI_AUTH_HEADER` / `ENSI_AUTH_VALUE`).
-3. **Идентификатор клиента**: совпадает ли `sub` JWT ЛК с id клиента в ENSI; если нет — нужен эндпоинт маппинга
-   (добавляется в `HttpEnsiSink` перед отправкой).
+3. **Идентификатор клиента**: id из клейма JWT ЛК совпадает с id клиента в ENSI. Отдельный эндпоинт маппинга не предусмотрен.
 4. **Идемпотентность**: поддерживает ли эндпоинт `Idempotency-Key`; если нет — опираемся на `beauty_profile_revision`
    (ENSI должен игнорировать ревизию ≤ сохранённой).
-5. **Обратный поток** (опционально): нужно ли читать профиль из ENSI при первом входе. `ENSI_FETCH_PATH` в адаптере есть, в сценарий входа не подключён — см. открытый вопрос в [`analyst-response.md`](analyst-response.md).
-6. **Сеть**: доступ воркера к ENSI (allowlist, mTLS), допустимая частота запросов (для `OUTBOX_BATCH_SIZE`).
+5. **Чтение при входе**: `GET` по `ENSI_FETCH_PATH`. Тело — `BeautyProfile` либо `{ "data": { "beauty_profile": … } }`. 404 — профиля нет. Импортированная ревизия в outbox пишется как `sent` и повторно не отправляется.
+6. **Сеть**: доступ воркера и API к ENSI (allowlist, mTLS), допустимая частота запросов (для `OUTBOX_BATCH_SIZE`).
 
 ## Эксплуатация
 

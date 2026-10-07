@@ -19,7 +19,7 @@
 | Аналитика через `sendBeacon`, сервер сам пишет `quiz_base_completed` | `fetch` с `keepalive`. События шлёт web-компонент на `POST /api/v1/events` |
 | Любая смена опубликованной версии даёт 409 на старой сессии | 409 `SURVEY_VERSION_MISMATCH`, только если версию сессии удалили. После публикации старая сессия доживает |
 | `GET /metrics` в одном списке с `/api/v1` | `GET /metrics` в корне процесса. Health: `GET /api/v1/health` и `GET /api/v1/ready` |
-| `ENSI_FETCH_PATH` читает профиль при входе | Метод есть в адаптере, API и воркер его не вызывают |
+| `ENSI_FETCH_PATH` читает профиль при входе | `GET /me/session` на пустом входе вызывает `fetchProfile`. Ошибка ENSI и отсутствие `latest.json` открывают опросник с начала |
 
 ---
 

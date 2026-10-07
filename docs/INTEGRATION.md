@@ -22,24 +22,34 @@ sequenceDiagram
   participant ENSI as ENSI
 
   LK->>W: script + token = JWT пользователя
-  User->>W: проходит опросник
-  W->>API: внутренние методы сессии
+  W->>API: GET /api/v1/me/session
+  alt пустой вход
+    API->>ENSI: fetchProfile
+    alt профиль собран
+      API-->>W: result1 или result2
+      W->>API: GET /api/v1/me/profile
+      W-->>LK: quiz:base-completed или quiz:category-completed
+    else профиля нет или ENSI недоступен
+      API-->>W: intro
+    end
+  end
+  User->>W: проходит опросник с начала
   W-->>LK: quiz:base-completed
   Note over LK: detail.widgets — коды виджетов ЛК
   W-->>LK: quiz:category-completed
-  API->>ENSI: воркер отдаёт профиль
+  API->>ENSI: воркер отдаёт новую ревизию
 ```
 
 Блок `W->>API` раскрыт в [`API.md`](API.md): кто вызывает каждый метод и на каком шаге. Страница ЛК этих запросов не видит.
 
 ## Встройка
 
-Скрипт и API — один контур сервиса опросника. Имя хоста `quiz.iledebeaute.ru` в примере — иллюстрация, прод-адрес в репозитории не зафиксирован.
+Скрипт отдаёт `https://beauty-quiz.iledebeaute.ru`, API — `https://beauty-api.iledebeaute.ru`.
 
 ```html
-<script type="module" src="https://quiz.example/embed/idb-beauty-quiz.js"></script>
+<script type="module" src="https://beauty-quiz.iledebeaute.ru/embed/idb-beauty-quiz.js"></script>
 <idb-beauty-quiz
-  api-base="https://quiz.example"
+  api-base="https://beauty-api.iledebeaute.ru"
   token="JWT пользователя ЛК"
 ></idb-beauty-quiz>
 ```
@@ -71,8 +81,8 @@ sequenceDiagram
 
 | Событие | Когда | `detail` |
 |---|---|---|
-| `quiz:base-completed` | Пользователь закончил 5 базовых вопросов | `BeautyProfile` |
-| `quiz:category-completed` | Пользователь закончил категорию Паспорта | `BeautyProfile` |
+| `quiz:base-completed` | Пользователь закончил 5 базовых вопросов, либо при открытии восстановлен результат базы | `BeautyProfile` |
+| `quiz:category-completed` | Пользователь закончил категорию Паспорта, либо при открытии восстановлен Паспорт | `BeautyProfile` |
 | `quiz:closed` | Компонент снят со страницы | нет |
 | `quiz:analytics` | Каждое событие аналитики, параллельно с батчем на сервер | `{ name, params, ts }` |
 
@@ -89,25 +99,31 @@ document.addEventListener("quiz:base-completed", (e) => {
 
 Если на странице уже есть `window.dataLayer` (массив), компонент пушит туда `{ event: name, ...params }`. Создавать `dataLayer` ради опросника не требуется. Дублировать события вызовом `POST /api/v1/events` со стороны ЛК не нужно: это делает компонент.
 
-### JWT
+### JWT — требование к команде ЛК
 
-Сервис доверяет токену ЛК и не заводит своих пользователей.
+JWT выпускает backend личного кабинета. Сервис опросника своих пользователей не заводит и токен не подписывает: он только проверяет подпись, `iss`, `aud`, срок и читает id клиента.
 
-| Параметр сервиса | Что прислать команде опросника |
+Алгоритм проверки — **RS256**. Ключ — JWKS (`JWT_JWKS_URL`) или PEM публичного ключа (`JWT_PUBLIC_KEY_PEM`, `importSPKI` с RS256). Для JWKS берётся алгоритм ключа в наборе; выпускать токен нужно тем же RS256.
+
+Команда ЛК передаёт:
+
+| Параметр сервиса | Что прислать |
 |---|---|
-| `JWT_JWKS_URL` или `JWT_PUBLIC_KEY_PEM` | адрес набора ключей либо PEM публичного ключа (RS256) |
+| `JWT_JWKS_URL` или `JWT_PUBLIC_KEY_PEM` | адрес набора ключей либо PEM публичного ключа |
 | `JWT_ISSUER`, `JWT_AUDIENCE` | `iss` и `aud` токена ЛК |
-| `JWT_CUSTOMER_CLAIM` | имя клейма с id клиента, по умолчанию `sub` |
+| `JWT_CUSTOMER_CLAIM` | имя клейма с id клиента. Если имя не передано, сервис читает `sub` |
 
-Id из клейма становится `customer_id` сессии и уходит в ENSI как `customer_id`. Совпадает ли он с id клиента в ENSI — открытый вопрос, см. [`ENSI.md`](ENSI.md).
+Значение клейма — id клиента. Оно записывается в сессию как `customer_id` и уходит в ENSI тем же значением. Клейм обязан совпадать с id клиента в ENSI.
 
-На origin API в `CORS_ORIGINS` должен быть origin страницы ЛК (схема, хост, порт). Пустой список выключает CORS: страница и API тогда на одном origin.
+В production `CORS_ORIGINS` включает `https://beauty-quiz.iledebeaute.ru`. Если виджет встроен на странице другого origin, в список добавляется и origin этой страницы. Пустой список выключает CORS. Локальные `http://localhost:*` в `.env.example` и Docker Compose — стенд разработчика.
 
-## Что реализует команда ENSI
+## Зависимость: контракт ENSI
 
-Один входящий метод: приём профиля клиента. Его вызывает воркер опросника, не страница ЛК и не web-компонент.
+Контракт приёма профиля принадлежит ENSI. Это зависимость сервиса опросника, не страница ЛК и не web-компонент.
 
-Пока команда ENSI не отдала контракт, воркер в файл не ходит по сети (`ENSI_SINK=file`). Переключение на HTTP — `ENSI_SINK=http` и переменные из [`ENSI.md`](ENSI.md).
+Нужны URL, HTTP-метод, авторизация сервис-сервис и правило идемпотентности. Пока команда ENSI их не передала, доставка идёт в файл (`ENSI_SINK=file`). Переключение на HTTP — `ENSI_SINK=http` и переменные из [`ENSI.md`](ENSI.md).
+
+Тот же контракт задаёт чтение: при пустом входе API вызывает `fetchProfile` (`GET` по `ENSI_FETCH_PATH`). Ответ 404 и отсутствующий файл file-sink открывают опросник с начала и больше не спрашивают ENSI на этой сессии. Сетевая ошибка и 5xx тоже открывают опросник с начала, чтение повторяется при следующем входе. Импортированный профиль в очередь повторной отправки не ставится.
 
 ```mermaid
 sequenceDiagram
@@ -127,7 +143,7 @@ sequenceDiagram
 
 Успешный ответ — 2xx. Поле `data.id`, если оно есть, сохраняется как внешний id. 5xx, 429 и сеть — повтор с паузой 1 мин, 2, 4 … до 24 ч; после `OUTBOX_MAX_ATTEMPTS` строка становится `dead`. Прочий 4xx остаётся `failed` и больше не берётся в работу, пока ревизию не поставят в очередь вручную (`pnpm ensi:resync -- --customer <id>`).
 
-`POST /me/session:reset` («Пройти заново») профиль в ENSI не отправляет. Новая ревизия уходит после следующего завершения базы или категории.
+`POST /me/session:reset` («Пройти заново») профиль в ENSI не отправляет и сохранённый профиль заново не подмешивает: новая сессия пустая. Новая ревизия уходит после следующего завершения базы или категории.
 
 ## Чего от ЛК в этом сценарии нет
 

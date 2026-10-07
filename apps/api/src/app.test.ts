@@ -1,9 +1,15 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyAnswer, buildProfile, emptyState, markBaseCompleted } from "@idb/core";
 import { createDb, migrateHandle, rowsOf } from "@idb/db";
+import { EnsiError, FileEnsiSink, MockEnsiSink } from "@idb/ensi-client";
+import { survey } from "@idb/survey-config";
 import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "./app.js";
-import { loadConfig } from "./config.js";
+import { type Config, loadConfig } from "./config.js";
 
 // Без TEST_DATABASE_URL тесты идут на встроенной PGlite в памяти — PostgreSQL не нужен.
 const TEST_DB = process.env.TEST_DATABASE_URL ?? "pglite:memory";
@@ -13,6 +19,19 @@ const APIKEY = "test-integration-key-0123456789";
 let app: FastifyInstance;
 let close: () => Promise<void>;
 let db: ReturnType<typeof createDb>["db"];
+let config: Config;
+let sink: ScriptedSink;
+
+/** Пустой sink вместо file-адаптера: тесты не читают ./.ensi-out. */
+class ScriptedSink extends MockEnsiSink {
+  readonly fetches: string[] = [];
+  fail = false;
+  override async fetchProfile(customerId: string) {
+    this.fetches.push(customerId);
+    if (this.fail) throw new EnsiError("ENSI unavailable", 503, true);
+    return super.fetchProfile(customerId);
+  }
+}
 
 beforeAll(async () => {
   const conn = createDb(TEST_DB, { max: 4 });
@@ -20,7 +39,7 @@ beforeAll(async () => {
   db = conn.db;
   close = conn.close;
   await db.execute(sql`TRUNCATE survey_versions CASCADE`);
-  const config = loadConfig({
+  config = loadConfig({
     NODE_ENV: "test",
     DATABASE_URL: TEST_DB,
     AUTH_MODE: "dev",
@@ -30,7 +49,8 @@ beforeAll(async () => {
     ADMIN_TOKEN: ADMIN,
     INTEGRATION_API_KEY: APIKEY,
   });
-  app = await buildApp({ config, db, logger: false });
+  sink = new ScriptedSink();
+  app = await buildApp({ config, db, logger: false, sink });
   await app.ready();
 });
 
@@ -41,6 +61,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`TRUNCATE sessions, profiles, ensi_outbox, analytics_events CASCADE`);
+  sink.store.clear();
+  sink.fetches.length = 0;
+  sink.fail = false;
 });
 
 // ── helpers ──────────────────────────────────────────────────────────
@@ -59,6 +82,31 @@ async function passBase(customer: string, gender: "female" | "male", votes: stri
   const r = await call("POST", "/me/session/base:complete", customer);
   expect(r.statusCode).toBe(200);
   return r.json().data;
+}
+
+/** Профиль завершённой базы — то, что ENSI вернул бы из fetchProfile. */
+function storedProfile(customerId: string, revision = 4) {
+  let state = emptyState();
+  for (const [key, code] of [
+    ["gender", "female"],
+    ["psycho1", "E"],
+    ["psycho2", "E"],
+    ["psycho3", "P"],
+    ["category", "face"],
+  ] as const) {
+    const r = applyAnswer(survey, state, key, {
+      optionCodes: [code],
+      skipped: false,
+      answeredAt: "2026-10-01T00:00:00.000Z",
+    });
+    if (!r.ok) throw new Error(r.error.message);
+    state = r.state;
+  }
+  return buildProfile(survey, markBaseCompleted(state), {
+    customerId,
+    revision,
+    updatedAt: "2026-10-01T00:00:00.000Z",
+  });
 }
 
 async function passBranch(customer: string, gender: "female" | "male", category: string) {
@@ -503,5 +551,128 @@ describe("integration API (X-Api-Key)", () => {
       profile_revision: 1,
     });
     expect(r.json().meta.ensi.status).toBe("pending");
+  });
+});
+
+describe("чтение профиля из ENSI при входе", () => {
+  it("профиль в sink → экран результата, outbox sent, повторный вход не читает ENSI", async () => {
+    sink.store.set("c-imp", storedProfile("c-imp"));
+    const first = await call("GET", "/me/session", "c-imp");
+    expect(first.statusCode).toBe(200);
+    expect(first.json().data).toMatchObject({
+      stage: "result1",
+      surveyVersion: "1.0.0",
+      derived: { psychotype: "E", baseComplete: true, primaryCategory: "face" },
+    });
+    expect(first.json().data.answers.gender.optionCodes).toEqual(["female"]);
+    expect(first.json().data.answers.psycho3.optionCodes).toEqual(["P"]);
+
+    const prof = (await call("GET", "/me/profile", "c-imp")).json().data;
+    expect(prof.profile).toMatchObject({ customer_id: "c-imp", profile_revision: 4 });
+    expect(prof.ensi.status).toBe("sent");
+
+    const out = rowsOf<{ status: string; revision: number }>(
+      await db.execute(sql`SELECT status, revision FROM ensi_outbox WHERE customer_id = 'c-imp'`),
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]?.status).toBe("sent");
+    expect(Number(out[0]?.revision)).toBe(4);
+
+    await call("GET", "/me/session", "c-imp");
+    expect(sink.fetches).toEqual(["c-imp"]);
+  });
+
+  it("ENSI недоступен — intro и повтор на следующем входе; пустой ответ запоминается", async () => {
+    sink.fail = true;
+    const down = await call("GET", "/me/session", "c-down");
+    expect(down.statusCode).toBe(200);
+    expect(down.json().data.stage).toBe("intro");
+    expect(sink.fetches).toEqual(["c-down"]);
+
+    const again = await call("GET", "/me/session", "c-down");
+    expect(again.json().data.stage).toBe("intro");
+    expect(sink.fetches).toEqual(["c-down", "c-down"]);
+
+    sink.fail = false;
+    const empty = await call("GET", "/me/session", "c-empty");
+    expect(empty.json().data.stage).toBe("intro");
+    expect(empty.json().data.answers).toEqual({});
+    await call("GET", "/me/session", "c-empty");
+    expect(sink.fetches.filter((id) => id === "c-empty")).toEqual(["c-empty"]);
+  });
+
+  it("начатое прохождение не затирается профилем, который появился позже", async () => {
+    const opened = await call("GET", "/me/session", "c-busy");
+    expect(opened.json().data.stage).toBe("intro");
+    expect((await put("c-busy", "gender", ["male"])).statusCode).toBe(200);
+    sink.store.set("c-busy", storedProfile("c-busy"));
+    const kept = (await call("GET", "/me/session", "c-busy")).json().data;
+    expect(kept.stage).toBe("base");
+    expect(Object.keys(kept.answers)).toEqual(["gender"]);
+    expect(kept.answers.gender.optionCodes).toEqual(["male"]);
+    expect(sink.fetches).toEqual(["c-busy"]);
+  });
+
+  it("«Пройти заново» остаётся пустым входом, даже если профиль в ENSI есть", async () => {
+    sink.store.set("c-reset", storedProfile("c-reset"));
+    expect((await call("GET", "/me/session", "c-reset")).json().data.stage).toBe("result1");
+    const reset = await call("POST", "/me/session:reset", "c-reset");
+    expect(reset.json().data).toMatchObject({ stage: "intro", answers: {} });
+    const again = (await call("GET", "/me/session", "c-reset")).json().data;
+    expect(again.stage).toBe("intro");
+    expect(again.answers).toEqual({});
+    expect(sink.fetches).toEqual(["c-reset"]);
+  });
+
+  it("чужой customer_id не импортируется", async () => {
+    sink.store.set("c-mis", storedProfile("other-customer"));
+    const r = (await call("GET", "/me/session", "c-mis")).json().data;
+    expect(r.stage).toBe("intro");
+    expect(r.answers).toEqual({});
+    expect((await call("GET", "/me/profile", "c-mis")).json().data.profile).toBeNull();
+    await call("GET", "/me/session", "c-mis");
+    expect(sink.fetches).toEqual(["c-mis"]);
+  });
+
+  it("предпросмотр версии не читает ENSI", async () => {
+    sink.store.set("c-prev", storedProfile("c-prev"));
+    const r = await app.inject({
+      url: "/api/v1/me/session?version=1.0.0",
+      headers: { ...H("c-prev"), "x-admin-token": ADMIN },
+    });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data).toMatchObject({ stage: "intro", surveyVersion: "1.0.0", answers: {} });
+    expect(sink.fetches).toEqual([]);
+  });
+
+  it("file-sink: нет файла — intro, latest.json — результат", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "ensi-file-"));
+    const fileSink = new FileEnsiSink(dir);
+    const fileApp = await buildApp({ config, db, logger: false, sink: fileSink });
+    await fileApp.ready();
+    try {
+      const miss = await fileApp.inject({
+        method: "GET",
+        url: "/api/v1/me/session",
+        headers: H("file-miss"),
+      });
+      expect(miss.statusCode).toBe(200);
+      expect(miss.json().data.stage).toBe("intro");
+
+      await fileSink.upsertProfile(storedProfile("file-hit"), {
+        traceId: "t",
+        idempotencyKey: "file-hit:4",
+      });
+      const hit = await fileApp.inject({
+        method: "GET",
+        url: "/api/v1/me/session",
+        headers: H("file-hit"),
+      });
+      expect(hit.json().data.stage).toBe("result1");
+      expect(hit.json().data.answers.category.optionCodes).toEqual(["face"]);
+    } finally {
+      await fileApp.close();
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

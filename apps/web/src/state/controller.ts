@@ -82,8 +82,19 @@ export class QuizController {
       });
       this.set({ survey, session, phase: this.phaseFor(session.stage) });
       if (this.state.phase === "question") this.afterQueueChange();
-      if (session.stage === "result1" || session.stage === "result2")
+      if (session.stage === "result1" || session.stage === "result2") {
         this.analytics.track("passport_announce_shown", { psychotype: session.derived.psychotype });
+        try {
+          const view = await this.api.getProfile();
+          if (view.profile) {
+            this.set({ lastProfile: view.profile });
+            if (session.stage === "result2") this.events.onCategoryCompleted?.(view.profile);
+            else this.events.onBaseCompleted?.(view.profile);
+          }
+        } catch {
+          /* экран результата уже собран из сессии */
+        }
+      }
       this.resumed = true;
     } catch (e) {
       this.set({ phase: "error", fatalError: (e as Error).message });

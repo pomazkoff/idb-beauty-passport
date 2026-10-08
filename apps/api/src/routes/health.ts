@@ -6,12 +6,12 @@ export async function healthRoutes(
   app: FastifyInstance,
   opts: { db: Db; registry: { current(): { version: string } } },
 ) {
-  app.get("/health", { schema: { tags: ["ops"], summary: "Liveness" } }, async () => ({
+  app.get("/health", { schema: { tags: ["ops"], security: [], summary: "Liveness" } }, async () => ({
     data: { status: "ok", surveyVersion: opts.registry.current().version },
   }));
   app.get(
     "/ready",
-    { schema: { tags: ["ops"], summary: "Readiness (проверка БД)" } },
+    { schema: { tags: ["ops"], security: [], summary: "Readiness (проверка БД)" } },
     async (_req, reply) => {
       try {
         await opts.db.execute(sql`select 1`);

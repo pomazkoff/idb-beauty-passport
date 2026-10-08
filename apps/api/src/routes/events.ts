@@ -32,7 +32,12 @@ export async function eventsRoutes(app: FastifyInstance, opts: { db: Db; config:
     {
       preHandler: app.authenticate,
       config: { rateLimit: { max: opts.config.RATE_LIMIT_PER_MINUTE, timeWindow: "1 minute" } },
-      schema: { tags: ["analytics"], summary: "Пакет событий аналитики", body: Body },
+      schema: {
+        tags: ["analytics"],
+        security: [{ bearer: [] }],
+        summary: "Пакет событий аналитики. Авторизация — только JWT пользователя.",
+        body: Body,
+      },
     },
     async (req, reply) => {
       const { events } = req.body as z.infer<typeof Body>;

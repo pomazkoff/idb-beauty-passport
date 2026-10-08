@@ -84,6 +84,7 @@ export async function surveyRoutes(app: FastifyInstance, opts: { registry: Surve
     {
       schema: {
         tags: ["survey"],
+        security: [],
         summary:
           "Конфиг опросника, отфильтрованный под пол (version — предпросмотр, черновики только с X-Admin-Token)",
         querystring: z.object({

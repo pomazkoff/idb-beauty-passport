@@ -93,11 +93,30 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
         },
         components: {
           securitySchemes: {
-            bearer: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
-            dev: { type: "apiKey", in: "header", name: "X-Customer-Id" },
+            bearer: {
+              type: "http",
+              scheme: "bearer",
+              bearerFormat: "JWT",
+              description:
+                "JWT пользователя ЛК. Сервис проверяет подпись RS256 (JWKS или PEM), iss, aud, exp и читает id клиента из клейма. Этот id равен id клиента в ENSI. Своих пользователей сервис не заводит.",
+            },
+            "X-Api-Key": {
+              type: "apiKey",
+              in: "header",
+              name: "X-Api-Key",
+              description:
+                "Сервисный ключ чтения опросника и профиля. Имя заголовка — X-Api-Key. Значение берётся из env INTEGRATION_API_KEY. Это не JWT пользователя.",
+            },
+            "X-Admin-Token": {
+              type: "apiKey",
+              in: "header",
+              name: "X-Admin-Token",
+              description:
+                "Токен конструктора. Имя заголовка — X-Admin-Token. Значение берётся из env ADMIN_TOKEN. Фронт ЛК его не передаёт.",
+            },
           },
         },
-        security: [{ bearer: [] }, { dev: [] }],
+        security: [{ bearer: [] }],
       },
       transform: jsonSchemaTransform,
     });

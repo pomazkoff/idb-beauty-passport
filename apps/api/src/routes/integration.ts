@@ -34,10 +34,11 @@ export async function integrationRoutes(
     config: { rateLimit: { max: 600, timeWindow: "1 minute" } },
   };
   const tags = ["integration"];
+  const security = [{ "X-Api-Key": [] }];
 
   app.get(
     "/integration/surveys",
-    { ...guard, schema: { tags, summary: "Версии опросника (без черновиков)" } },
+    { ...guard, schema: { tags, security, summary: "Версии опросника (без черновиков)" } },
     async () => {
       const all = await registry.list();
       return { data: all.filter((v) => v.status !== "draft").map(({ issues: _i, ...v }) => v) };
@@ -48,7 +49,7 @@ export async function integrationRoutes(
     "/integration/surveys/current",
     {
       ...guard,
-      schema: { tags, summary: "Опубликованный опросник целиком (оба пола, правила, виджеты, тексты)" },
+      schema: { tags, security, summary: "Опубликованный опросник целиком (оба пола, правила, виджеты, тексты)" },
     },
     async (req, reply) => {
       const survey = registry.current();
@@ -73,6 +74,7 @@ export async function integrationRoutes(
       ...guard,
       schema: {
         tags,
+        security,
         summary: "Опросник указанной версии (published или archived)",
         params: z.object({ version: z.string() }),
       },
@@ -99,7 +101,9 @@ export async function integrationRoutes(
       ...guard,
       schema: {
         tags,
-        summary: "Последний профиль клиента (BeautyProfile) и статус доставки",
+        security,
+        summary:
+          "Последний профиль клиента (BeautyProfile) и статус доставки этого профиля в ENSI (meta.ensi.status)",
         params: z.object({ customerId: z.string().min(1).max(256) }),
       },
     },

@@ -141,7 +141,24 @@ describe("ops", () => {
     expect(m.body).toContain("ensi_outbox_size");
     const o = await app.inject({ url: "/api/v1/openapi.json" });
     expect(o.statusCode).toBe(200);
-    expect(o.json().paths["/api/v1/me/session/answers/{questionKey}"]).toBeDefined();
+    const spec = o.json();
+    expect(spec.paths["/api/v1/me/session/answers/{questionKey}"]).toBeDefined();
+    expect(spec.components.securitySchemes["X-Api-Key"]).toMatchObject({
+      type: "apiKey",
+      in: "header",
+      name: "X-Api-Key",
+    });
+    expect(spec.components.securitySchemes["X-Admin-Token"].name).toBe("X-Admin-Token");
+    expect(spec.components.securitySchemes.bearer.scheme).toBe("bearer");
+    expect(spec.components.securitySchemes.dev).toBeUndefined();
+    const sessionGet = spec.paths["/api/v1/me/session"].get;
+    expect(sessionGet.security).toEqual([{ bearer: [] }]);
+    const answerProps = JSON.stringify(sessionGet.responses["200"]);
+    expect(answerProps).toContain("optionCodes");
+    expect(answerProps).toContain("skipped");
+    expect(answerProps).toContain("answeredAt");
+    expect(spec.paths["/api/v1/integration/surveys/current"].get.security).toEqual([{ "X-Api-Key": [] }]);
+    expect(spec.paths["/api/v1/survey"].get.security).toEqual([]);
   });
 
   it("404 в конверте", async () => {

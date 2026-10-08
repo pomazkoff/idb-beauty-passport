@@ -35,7 +35,7 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 
 - `AUTH_MODE=jwt` + `JWT_JWKS_URL` **или** `JWT_PUBLIC_KEY_PEM`, `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_CUSTOMER_CLAIM` (по умолчанию `sub`).
   `AUTH_MODE=dev` (заголовок `X-Customer-Id`) в `NODE_ENV=production` **не стартует**.
-- `CORS_ORIGINS` — origin-ы через запятую. В production: `https://beauty-quiz.iledebeaute.ru` и origin страницы ЛК, если виджет встроен на другом хосте. Пусто = CORS выключен (только same-origin). `localhost` в `.env.example` и Docker Compose — локальный стенд.
+- `CORS_ORIGINS` — origin-ы через запятую. В production: origin страницы ЛК, с которой фронт вызывает API, и `https://beauty-quiz.iledebeaute.ru`, если поднимают эталон. Пусто = CORS выключен (только same-origin). `localhost` в `.env.example` и Docker Compose — локальный стенд.
 - `SWAGGER_ENABLED=false` в production (или за внутренним ingress).
 - `ENSI_SINK=http` + `ENSI_*` — см. `docs/ENSI.md`.
 - `SHOW_DRAFT_BADGE=false` в production (плашка «вопрос дописан» — для приёмки контента).
@@ -44,9 +44,11 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 - `DATABASE_URL=pglite:<каталог>` (или `pglite:memory`) — встроенная база вместо PostgreSQL: один процесс, без конкурентного доступа; воркер outbox запускается внутри API (`OUTBOX_POLL_INTERVAL_MS`, по умолчанию 2000). **Только для демо, разработки и тестов** — в production нужен PostgreSQL.
 - `INTEGRATION_API_KEY` (≥16 символов) — ключ для ENSI (`X-Api-Key`); пусто = интеграционный API выключен.
 
-## Встраивание в ЛК
+## Интеграция ЛК и эталон
 
-Контракт для команды ЛК — [`INTEGRATION.md`](INTEGRATION.md). Статика — `https://beauty-quiz.iledebeaute.ru`, API — `https://beauty-api.iledebeaute.ru`. `POST /api/v1/events` вызывает сам web-компонент.
+Контракт для команды ЛК — нативные вызовы API, [`INTEGRATION.md`](INTEGRATION.md). API — `https://beauty-api.iledebeaute.ru`. Фронт ЛК сам шлёт `POST /api/v1/events`.
+
+Эталонный компонент ниже необязателен. Статика эталона — `https://beauty-quiz.iledebeaute.ru`. `?customer=` и заголовок `X-Customer-Id` работают только при `AUTH_MODE=dev` и в production выключены.
 
 ```html
 <script type="module" src="https://beauty-quiz.iledebeaute.ru/embed/idb-beauty-quiz.js"></script>

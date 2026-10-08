@@ -1,8 +1,18 @@
 # Доставка профиля в ENSI
 
-Этот файл — исходящий контур: воркер опросника отправляет `BeautyProfile` в ENSI. Встройка опросника в личный кабинет сюда не входит, она в [`INTEGRATION.md`](INTEGRATION.md). Методы, которыми web-компонент ходит в свой API, и сервисное чтение опросника по `X-Api-Key` — в [`API.md`](API.md).
+Этот файл — исходящий контур: воркер опросника отправляет `BeautyProfile` в ENSI. Как фронт ЛК вызывает API — [`INTEGRATION.md`](INTEGRATION.md). Сервисное чтение по заголовку `X-Api-Key` — [`API.md`](API.md).
 
-ENSI профиль не запрашивает у страницы ЛК. Страница получает коды виджетов событием `quiz:base-completed` / `quiz:category-completed`.
+ENSI профиль у фронта ЛК не запрашивает. Фронт берёт коды виджетов из ответа API (`data.widgets` у завершений этапа или `data.profile.widgets` у `GET /api/v1/me/profile`).
+
+Доставка в очередь ставится в той же транзакции, что и запись профиля:
+
+- после `POST /api/v1/me/session/base:complete`;
+- после каждого `POST /api/v1/me/session/passport:complete`;
+- после такого же завершения, если перед ним был `POST /api/v1/me/session:reset`.
+
+Отдельный ответ, reset и открытие сессии очередь не пополняют. Импорт на пустом входе пишется как `sent`.
+
+Webhook в ENSI не реализован. Позже его можно добавить отдельно. Сейчас результат выходит push воркера и pull `GET /api/v1/integration/customers/{customerId}/profile`.
 
 ## Как это устроено
 
@@ -48,7 +58,7 @@ ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # GET при
 
 ## Чтение опросника по ключу
 
-`GET /api/v1/integration/...` с заголовком `X-Api-Key` — отдельный контур. Web-компонент ЛК его не использует: вопросы он берёт из `GET /api/v1/survey`, ответы сдаёт методами сессии. Состав, лимит и отличие от `GET /me/profile` — в [`API.md`](API.md).
+`GET /api/v1/integration/...` с заголовком `X-Api-Key` — отдельный контур. В OpenAPI схема называется `X-Api-Key`. Фронт ЛК его не использует: вопросы он берёт из `GET /api/v1/survey`, ответы сдаёт методами сессии. Состав, лимит и отличие от `GET /me/profile` — в [`API.md`](API.md).
 
 `ENSI_FETCH_PATH` и `fetchProfile` — чтение профиля при пустом входе. Его вызывает `GET /api/v1/me/session`, не воркер. Подробности и диаграмма — в [`API.md`](API.md). File-sink читает `latest.json` и при отсутствии файла возвращает `null`.
 
@@ -56,9 +66,32 @@ ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # GET при
 
 Тело запроса — `toEnsiPayload(BeautyProfile)` (`packages/ensi-client/src/http/mapping.ts`):
 
+Фиксированные ключи `attributes` (их набор конечный, `packages/ensi-client/src/http/mapping.ts`):
+
+| Ключ | Откуда |
+|---|---|
+| `beauty_gender` | `gender` |
+| `beauty_psychotype` | `psychotype.code` |
+| `beauty_psychotype_name` | `psychotype.name` |
+| `beauty_primary_category` | `primary_category` или пустая строка |
+| `beauty_completed_categories` | `completed_categories` |
+| `beauty_completeness_pct` | `completeness_pct` |
+| `beauty_widgets_priority` | `widgets.priority` |
+| `beauty_widgets_base` | `widgets.base` |
+| `beauty_profile_revision` | `profile_revision` |
+| `beauty_survey_version` | `survey_version` |
+| `beauty_updated_at` | `updated_at` |
+| `beauty_tags` | `tags` |
+
+Плюс по одному ключу на каждую пару в `traits`: `beauty_trait_` + ключ `traits`, в котором точка заменена на `_`. Пример: `traits["face.skin_type"]` становится `beauty_trait_face_skin_type`, значение — массив кодов. Других ключей `attributes` нет.
+
+`beauty_profile` — тот же `BeautyProfile` целиком. Поля: `schema_version`, `customer_id`, `profile_revision`, `survey_version`, `updated_at`, `gender`, `psychotype.code`, `psychotype.name`, `psychotype.votes.E`, `psychotype.votes.P`, `psychotype.votes.L`, `psychotype.votes.M`, `primary_category`, `completed_categories`, `completeness_pct`, `widgets.priority`, `widgets.base`, `answers` (элемент: `stage`, `category`, `question_key`, `option_codes`, `skipped`, `answered_at`), `traits`, `tags`.
+
+Пример тела:
+
 ```json
 {
-  "customer_id": "…",
+  "customer_id": "100500",
   "attributes": {
     "beauty_gender": "female",
     "beauty_psychotype": "E",
@@ -66,21 +99,47 @@ ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # GET при
     "beauty_primary_category": "face",
     "beauty_completed_categories": ["face"],
     "beauty_completeness_pct": 60,
-    "beauty_widgets_priority": ["news_blog", "…"],
-    "beauty_widgets_base": ["favorites", "…"],
+    "beauty_widgets_priority": ["news_blog"],
+    "beauty_widgets_base": ["favorites"],
     "beauty_profile_revision": 2,
     "beauty_survey_version": "1.0.0",
-    "beauty_updated_at": "2026-10-06T07:30:00Z",
+    "beauty_updated_at": "2026-10-08T12:00:00.000Z",
     "beauty_tags": ["skin_type:combination"],
     "beauty_trait_face_skin_type": ["combination"],
     "beauty_trait_face_concerns": ["dehydrated", "dull"]
   },
-  "beauty_profile": { "…полный BeautyProfile по ТЗ 10.2…" }
+  "beauty_profile": {
+    "schema_version": "1.0",
+    "customer_id": "100500",
+    "profile_revision": 2,
+    "survey_version": "1.0.0",
+    "updated_at": "2026-10-08T12:00:00.000Z",
+    "gender": "female",
+    "psychotype": {
+      "code": "E",
+      "name": "Эмоциональный",
+      "votes": { "E": 3, "P": 1, "L": 0, "M": 0 }
+    },
+    "primary_category": "face",
+    "completed_categories": ["face"],
+    "completeness_pct": 60,
+    "widgets": { "priority": ["news_blog"], "base": ["favorites"] },
+    "answers": [
+      {
+        "stage": "base",
+        "question_key": "gender",
+        "option_codes": ["female"],
+        "skipped": false,
+        "answered_at": "2026-10-08T12:00:00.000Z"
+      }
+    ],
+    "traits": { "face.skin_type": ["combination"], "face.concerns": ["dehydrated", "dull"] },
+    "tags": ["skin_type:combination"]
+  }
 }
 ```
 
-`attributes` — плоские поля для сегментации/CRM; `beauty_profile` — полный контракт для хранения как JSON.
-Коды вариантов и ключи вопросов — в `docs/content-map.md`.
+`attributes` — плоские поля для сегментации. `beauty_profile` — полный контракт для хранения как JSON. Коды вариантов и ключи вопросов — в `docs/content-map.md`. Массивы виджетов в примере короткие, потому что так устроен пример; в ответе сервера там полный набор кодов, который посчитал движок.
 
 ## Зависимость от команды ENSI
 
@@ -95,7 +154,7 @@ ENSI_FETCH_PATH=/api/v1/customers/{customer_id}/beauty-profile      # GET при
 5. **Чтение при входе**: `GET` по `ENSI_FETCH_PATH`. Тело — `BeautyProfile` либо `{ "data": { "beauty_profile": … } }`. 404 — профиля нет. Импортированная ревизия в outbox пишется как `sent` и повторно не отправляется.
 6. **Сеть**: доступ воркера и API к ENSI (allowlist, mTLS), допустимая частота запросов (для `OUTBOX_BATCH_SIZE`).
 
-## Эксплуатация
+## Команды очереди
 
 ```bash
 pnpm ensi:resync                       # статистика очереди

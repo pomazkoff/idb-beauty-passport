@@ -1,112 +1,79 @@
 # Руководство по интеграции
 
-Документ для команды личного кабинета ИЛЬ ДЕ БОТЭ. Здесь только то, что встраивается в страницу ЛК, и тот HTTP-метод, который должна принять ENSI.
+Документ для команды личного кабинета ИЛЬ ДЕ БОТЭ. В этой задаче фронт личного кабинета сам рисует опросник и вызывает API сервиса. Готовый web-компонент `<idb-beauty-quiz>` — необязательная эталонная реализация тех же вызовов, встраивать его не требуется.
 
-Опросник поставляется готовым web-компонентом `<idb-beauty-quiz>`. Компонент сам вызывает backend опросника: конфиг, сессию, ответы, аналитику. Эти методы в страницу ЛК не переносятся. Полный перечень с пометкой «внутренний / внешний» и диаграммы по каждому методу — [`API.md`](API.md). Где крутится сервис — [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Где крутится сервис — [`ARCHITECTURE.md`](ARCHITECTURE.md). Полный перечень методов — [`API.md`](API.md). Доставка профиля в ENSI — [`ENSI.md`](ENSI.md).
 
-## Что делает страница ЛК
+Базовый URL API: `https://beauty-api.iledebeaute.ru`. Префикс методов: `/api/v1`.
 
-1. Подключает скрипт web-компонента.
-2. Передаёт в атрибут `token` JWT текущего пользователя ЛК.
-3. Слушает события компонента и по ним обновляет виджеты кабинета.
-4. Согласует с командой сервиса параметры проверки этого JWT и origin страницы.
+## Что делает фронт ЛК
 
-Отдельный вызов методов опросника со стороны ЛК для этого сценария не нужен.
+1. Берёт опубликованный конфиг: `GET /api/v1/survey`.
+2. Открывает или продолжает сессию: `GET /api/v1/me/session` с JWT пользователя.
+3. Сохраняет каждый ответ: `PUT /api/v1/me/session/answers/{questionKey}`.
+4. Завершает базу: `POST /api/v1/me/session/base:complete`.
+5. Для Паспорта: `POST /api/v1/me/session/passport:start`, ответы, `POST /api/v1/me/session/passport:complete`.
+6. Для виджетов кабинета читает коды: `GET /api/v1/me/profile` (`data.profile.widgets`).
+7. «Пройти заново»: `POST /api/v1/me/session:reset`. Следующее завершение обновляет тот же профиль.
+8. События аналитики: `POST /api/v1/events`.
+
+Психотип, заполненность и коды виджетов считает сервер. Фронт их показывает, а не пересчитывает.
 
 ```mermaid
 sequenceDiagram
   actor User as Пользователь
-  participant LK as Страница ЛК
-  participant W as "idb-beauty-quiz"
+  participant LK as Фронт ЛК
   participant API as API опросника
   participant ENSI as ENSI
 
-  LK->>W: script + token = JWT пользователя
-  W->>API: GET /api/v1/me/session
+  LK->>API: GET /api/v1/survey
+  Note over LK,API: опубликованный конфиг, без JWT
+  LK->>API: GET /api/v1/me/session
+  Note over LK,API: Authorization Bearer, JWT пользователя
   alt пустой вход
     API->>ENSI: fetchProfile
     alt профиль собран
-      API-->>W: result1 или result2
-      W->>API: GET /api/v1/me/profile
-      W-->>LK: quiz:base-completed или quiz:category-completed
+      API-->>LK: result1 или result2
+      LK->>API: GET /api/v1/me/profile
+      Note over LK: data.profile.widgets — коды виджетов ЛК
     else профиля нет или ENSI недоступен
-      API-->>W: intro
+      API-->>LK: intro, HTTP 200
     end
   end
-  User->>W: проходит опросник с начала
-  W-->>LK: quiz:base-completed
-  Note over LK: detail.widgets — коды виджетов ЛК
-  W-->>LK: quiz:category-completed
-  API->>ENSI: upsert профиля этого customer_id
-  User->>W: Пройти заново и снова завершает базу
+  User->>LK: отвечает на вопросы
+  LK->>API: PUT /api/v1/me/session/answers/{questionKey}
+  User->>LK: последний вопрос базы
+  LK->>API: POST /api/v1/me/session/base:complete
+  Note over API: единственный профиль клиента, outbox pending
+  API->>ENSI: воркер upsertProfile
+  User->>LK: категория Паспорта
+  LK->>API: POST /api/v1/me/session/passport:start
+  LK->>API: POST /api/v1/me/session/passport:complete
   Note over API: та же строка профиля, revision + 1
-  API->>ENSI: upsert того же customer_id
+  API->>ENSI: воркер upsertProfile того же customer_id
+  User->>LK: Пройти заново
+  LK->>API: POST /api/v1/me/session:reset
+  Note over API: сессия пустая, профиль и запись в ENSI не трогаются
+  User->>LK: снова завершает базу
+  LK->>API: POST /api/v1/me/session/base:complete
+  Note over API: UPDATE той же строки, revision + 1
+  API->>ENSI: воркер upsertProfile того же customer_id
 ```
 
-Блок `W->>API` раскрыт в [`API.md`](API.md): кто вызывает каждый метод и на каком шаге. Страница ЛК этих запросов не видит.
+Направление этих методов: фронт ЛК → API опросника. Это не вызовы ENSI к опроснику. ENSI получает профиль от воркера и может забрать его pull-методом, см. ниже.
 
-## Встройка
+## Авторизация
 
-Скрипт отдаёт `https://beauty-quiz.iledebeaute.ru`, API — `https://beauty-api.iledebeaute.ru`.
+Сервис принимает только токены авторизации пользователей ИЛЬ ДЕ БОТЭ. Своих пользователей не заводит, токен не выпускает и анонимный вход не открывает. В production запрос сессии без `Authorization: Bearer` отвечает 401.
 
-```html
-<script type="module" src="https://beauty-quiz.iledebeaute.ru/embed/idb-beauty-quiz.js"></script>
-<idb-beauty-quiz
-  api-base="https://beauty-api.iledebeaute.ru"
-  token="JWT пользователя ЛК"
-></idb-beauty-quiz>
-```
+JWT выпускает backend личного кабинета. Сервис проверяет его так (`apps/api/src/plugins/auth.ts`, `AUTH_MODE=jwt`):
 
-Файл собирается командой `pnpm --filter @idb/web build`:
+1. Заголовок `Authorization` начинается с `Bearer `.
+2. Подпись проверяется алгоритмом RS256. Ключ — JWKS (`JWT_JWKS_URL`) или PEM публичного ключа (`JWT_PUBLIC_KEY_PEM`, `importSPKI` с алгоритмом RS256). Для JWKS берётся алгоритм ключа в наборе; выпускать токен нужно тем же RS256.
+3. Проверяются `iss` (`JWT_ISSUER`), `aud` (`JWT_AUDIENCE`) и срок `exp`.
+4. Id клиента читается из клейма `JWT_CUSTOMER_CLAIM`. Если имя не задано, читается `sub`. Значение должно быть строкой или числом.
 
-| Файл | Как подключать |
-|---|---|
-| `apps/web/dist/embed/idb-beauty-quiz.js` | `<script type="module">` |
-| `apps/web/dist/embed/idb-beauty-quiz.iife.js` | обычный `<script>`, глобальное имя `IdbBeautyQuiz` |
-
-Компонент регистрируется сам (`customElements.define`). Shadow DOM, стили внутри. npm-пакет не публикуется (`private: true`).
-
-### Атрибуты
-
-| Атрибут | Обязательность | Смысл |
-|---|---|---|
-| `api-base` | да | Origin API опросника, без `/api/v1` на конце |
-| `token` | да в production | JWT пользователя. Компонент шлёт `Authorization: Bearer` |
-| `customer-id` | только стенд `AUTH_MODE=dev` | Заголовок `X-Customer-Id`. В `NODE_ENV=production` такой режим не стартует |
-| `inherit-fonts` | нет | Шрифты страницы ЛК |
-| `no-fonts` | нет | Не добавлять на страницу ссылку на Google Fonts |
-
-Атрибута темы нет. Отдельного параметра «какой опросник показать» нет: компонент берёт опубликованную версию.
-
-### События на страницу ЛК
-
-События всплывают из shadow DOM (`bubbles`, `composed`). Слушать можно на `document`.
-
-| Событие | Когда | `detail` |
-|---|---|---|
-| `quiz:base-completed` | Пользователь закончил 5 базовых вопросов, либо при открытии восстановлен результат базы | `BeautyProfile` |
-| `quiz:category-completed` | Пользователь закончил категорию Паспорта, либо при открытии восстановлен Паспорт | `BeautyProfile` |
-| `quiz:closed` | Компонент снят со страницы | нет |
-| `quiz:analytics` | Каждое событие аналитики, параллельно с батчем на сервер | `{ name, params, ts }` |
-
-`BeautyProfile` — ответ сервера опросника, не тело запроса в ENSI. Для кабинета достаточно кодов виджетов:
-
-```js
-document.addEventListener("quiz:base-completed", (e) => {
-  const { priority, base } = e.detail.widgets;
-  // priority и base — массивы кодов виджетов ЛК, например "news_blog"
-});
-```
-
-Остальные поля `detail`, если кабинет захочет их показать сам: `psychotype.code`, `psychotype.name`, `primary_category`, `completed_categories`, `completeness_pct`, `gender`, `profile_revision`, `survey_version`.
-
-Если на странице уже есть `window.dataLayer` (массив), компонент пушит туда `{ event: name, ...params }`. Создавать `dataLayer` ради опросника не требуется. Дублировать события вызовом `POST /api/v1/events` со стороны ЛК не нужно: это делает компонент.
-
-### JWT — требование к команде ЛК
-
-JWT выпускает backend личного кабинета. Сервис опросника своих пользователей не заводит и токен не подписывает: он только проверяет подпись, `iss`, `aud`, срок и читает id клиента.
-
-Алгоритм проверки — **RS256**. Ключ — JWKS (`JWT_JWKS_URL`) или PEM публичного ключа (`JWT_PUBLIC_KEY_PEM`, `importSPKI` с RS256). Для JWKS берётся алгоритм ключа в наборе; выпускать токен нужно тем же RS256.
+Подтверждено владельцем: значение этого клейма — id клиента, и оно равно id клиента в ENSI. Сервис записывает его в сессию как `customer_id` и тем же значением обновляет профиль в ENSI. Отдельного сопоставления идентификаторов нет.
 
 Команда ЛК передаёт:
 
@@ -116,53 +83,173 @@ JWT выпускает backend личного кабинета. Сервис о�
 | `JWT_ISSUER`, `JWT_AUDIENCE` | `iss` и `aud` токена ЛК |
 | `JWT_CUSTOMER_CLAIM` | имя клейма с id клиента. Если имя не передано, сервис читает `sub` |
 
-Подтверждено владельцем: значение клейма — id клиента, и оно равно id клиента в ENSI. Сервис записывает его в сессию как `customer_id` и тем же значением обновляет профиль в ENSI. Отдельного сопоставления идентификаторов нет.
+`X-Admin-Token` фронт ЛК не передаёт. Он нужен конструктору. На `GET /api/v1/me/session` и `POST /api/v1/me/session:reset` query `version` — предпросмотр черновика: без `X-Admin-Token` это 403. Фронт ЛК этот query не добавляет.
 
-В production `CORS_ORIGINS` включает `https://beauty-quiz.iledebeaute.ru`. Если виджет встроен на странице другого origin, в список добавляется и origin этой страницы. Пустой список выключает CORS. Локальные `http://localhost:*` в `.env.example` и Docker Compose — стенд разработчика.
+Заголовок `X-Customer-Id` и query `?customer=` в этом руководстве не используются. Они есть только в `AUTH_MODE=dev` на стенде разработчика. При `NODE_ENV=production` такой режим не стартует. Подробности стенда — [`RUNBOOK.md`](RUNBOOK.md).
+
+В production `CORS_ORIGINS` включает origin страницы ЛК, с которой фронт вызывает API. Если рядом поднимают эталонную страницу, в список входит и `https://beauty-quiz.iledebeaute.ru`. Пустой список выключает CORS. Локальные `http://localhost:*` в `.env.example` и Docker Compose — стенд разработчика.
+
+## Конфиг опросника
+
+`GET /api/v1/survey?gender=female|male`
+
+Опубликованная версия отдаётся без JWT. В ответе тексты уже выбраны под один пол: вопросы базы и ветки Паспорта. В вариантах есть `code`, `title`, `subtitle`, `exclusive`, `categoryCode`. Голосов психотипа и тегов там нет, варианты с `deprecated: true` скрыты. Без `gender` в ответе только вопрос `gender`.
+
+`ETag` — хеш тела. `If-None-Match` даёт 304. У опубликованной версии `Cache-Control: public, max-age=300`.
+
+Полный документ с обоими полами, голосами и тегами — сервисное чтение `GET /api/v1/integration/surveys/current` (заголовок `X-Api-Key`). Фронту ЛК для экрана опросника он не нужен: хватает `GET /survey`.
+
+Правила экрана:
+
+- `single` не пропускается. У него ровно один код.
+- `multi` с `skippable: true` можно сдать пустым списком только вместе с `"skipped": true`.
+- `exclusive: true` в multi оставляет выбранным только этот вариант.
+- Смена пола на сервере стирает остальные ответы. В ответе `PUT` будет `meta.genderReset: true`, после этого конфиг запрашивают заново.
+- Текущий вопрос фронт находит сам: первый неотвеченный в очереди стадии. Поля `currentQuestionKey` в сессии нет.
+
+## Сессия и ответы
+
+Все методы ниже требуют `Authorization: Bearer <JWT пользователя>`.
+
+| Метод | Когда | Ответ |
+|---|---|---|
+| `GET /api/v1/me/session` | Открытие опросника и после завершения этапа | Сессия. Пустой вход читает профиль из ENSI |
+| `PUT /api/v1/me/session/answers/{questionKey}` | Каждый выбор и «Пропустить» | Сессия и `meta.genderReset` |
+| `POST /api/v1/me/session/base:complete` | Отвечен последний вопрос базы | `BeautyProfile`, в очередь ENSI |
+| `POST /api/v1/me/session/passport:start` | Старт категории, тело `{ "category" }` | Сессия, стадия `passport` |
+| `POST /api/v1/me/session/passport:complete` | Отвечена категория, тело `{ "category" }` | `BeautyProfile`, в очередь ENSI |
+| `POST /api/v1/me/session:reset` | «Пройти заново» | Пустая сессия. Профиль не удаляется и в ENSI не уходит |
+| `GET /api/v1/me/profile` | Коды виджетов и статус доставки | `{ profile, ensi }`. Профиля может не быть: `profile: null`, HTTP 200 |
+| `POST /api/v1/events` | Пакет аналитики, до 100 событий | `202`, `{ "data": { "accepted" } }` |
+
+`questionKey` — латиница, цифры и `_`, с буквы. Лимит `RATE_LIMIT_PER_MINUTE` (по умолчанию 60 в минуту) стоит на `PUT` ответов и на `POST /events`. Ключ лимита — id клиента.
+
+Тело `PUT` — один ответ, не пустой объект:
+
+```json
+{ "optionCodes": ["female"], "skipped": false, "timeMs": 1200 }
+```
+
+`timeMs` можно не передавать. `skipped` по умолчанию `false`.
+
+В сессии `data.answers` — объект, ключ которого равен `question_key`. У каждого ключа одна и та же форма:
+
+```json
+{
+  "sessionId": "3f1c2a40-7b2e-4c1a-9d0e-6a1b2c3d4e5f",
+  "surveyVersion": "1.0.0",
+  "stage": "base",
+  "activeCategory": null,
+  "answers": {
+    "gender": {
+      "optionCodes": ["female"],
+      "skipped": false,
+      "timeMs": 1200,
+      "answeredAt": "2026-10-08T12:00:00.000Z"
+    }
+  },
+  "derived": {
+    "gender": "female",
+    "baseComplete": false,
+    "psychotype": "M",
+    "votes": { "E": 0, "P": 0, "L": 0, "M": 0 },
+    "primaryCategory": null,
+    "completedCategories": [],
+    "completenessPct": 0,
+    "widgets": { "priority": [], "base": [] }
+  }
+}
+```
+
+Поля одного сохранённого ответа: `optionCodes` (массив кодов), `skipped` (boolean), `timeMs` (необязательное число миллисекунд), `answeredAt` (ISO-8601, момент сохранения на сервере). Пустой `optionCodes` допустим только при `skipped: true`. Та же форма описана в OpenAPI (`GET /api/v1/openapi.json`): схема ответа сессии не является пустым объектом.
+
+Стадии: `intro`, `base`, `result1`, `passport`, `result2`.
+
+Пустой вход (`stage=intro`, база не завершена, ответов нет, это не предпросмотр и не сессия сразу после reset) вызывает `fetchProfile` в ENSI. Если профиль собирается, сессия открывается на `result1` или `result2`. Нет профиля, 404 и пустой file-sink оставляют `intro` и больше не спрашивают ENSI на этой сессии. Сеть и 5xx тоже оставляют `intro`, чтение повторяется при следующем `GET /me/session`. Ошибка ENSI не превращает открытие в 500. Уже начатую сессию импорт не затирает. Импортированный профиль в очередь повторной отправки не ставится.
+
+`SURVEY_VERSION_MISMATCH` (409) — версию, на которой начата сессия, удалили. Публикация новой версии сама по себе сессию не ломает.
+
+## Профиль и виджеты ЛК
+
+`BeautyProfile` приходит в `data` ответов `base:complete` и `passport:complete` и в `data.profile` у `GET /api/v1/me/profile`.
+
+Поля, все:
+
+| Поле | Смысл |
+|---|---|
+| `schema_version` | всегда `"1.0"` |
+| `customer_id` | id клиента, тот же, что в JWT и в ENSI |
+| `profile_revision` | номер ревизии единственного профиля |
+| `survey_version` | версия опросника, на которой собран профиль |
+| `updated_at` | ISO-8601 |
+| `gender` | `female` или `male` |
+| `psychotype.code` | `E`, `P`, `L` или `M` |
+| `psychotype.name` | название психотипа |
+| `psychotype.votes.E` | число голосов |
+| `psychotype.votes.P` | число голосов |
+| `psychotype.votes.L` | число голосов |
+| `psychotype.votes.M` | число голосов |
+| `primary_category` | код категории или `null` |
+| `completed_categories` | массив кодов завершённых категорий |
+| `completeness_pct` | число 0–100 |
+| `widgets.priority` | массив кодов приоритетных виджетов ЛК |
+| `widgets.base` | массив кодов базовых виджетов ЛК |
+| `answers` | массив ответов профиля, см. ниже |
+| `traits` | объект: ключ `категория.тема`, значение — массив кодов |
+| `tags` | массив строк-тегов |
+
+Элемент `answers[]`: `stage` (`base` или `passport`), `category` (необязательно, код категории), `question_key`, `option_codes`, `skipped`, `answered_at` (необязательно, ISO-8601).
+
+Для виджетов кабинета фронт берёт `widgets.priority` и `widgets.base`. Это коды виджетов ЛК, например `news_blog`.
+
+`GET /api/v1/me/profile` дополнительно отдаёт статус доставки этого профиля в ENSI:
+
+```json
+{
+  "data": {
+    "profile": null,
+    "ensi": {
+      "status": "none",
+      "revision": null,
+      "lastAttemptAt": null,
+      "attempts": 0,
+      "lastError": null
+    }
+  }
+}
+```
+
+`data.ensi.status`: `none`, `pending`, `sending`, `sent`, `failed`, `superseded`, `dead`. Это статус отправки профиля красоты в ENSI, не статус HTTP и не доставка контента опросника пользователю. Пока профиля нет, `profile` равен `null` и статус `none`.
+
+Тот же профиль по сервисному ключу устроен иначе: `BeautyProfile` лежит в `data`, статус — в `meta.ensi.status`, отсутствие профиля — 404. Это pull для других систем, не для экрана опросника. См. [`API.md`](API.md).
+
+## Когда профиль уходит в ENSI
+
+Воркер ставит доставку в очередь в той же транзакции, что и запись профиля. Момент один: успешное завершение этапа на сервере.
+
+| Событие | Очередь ENSI |
+|---|---|
+| `POST /api/v1/me/session/base:complete` | да, pending |
+| `POST /api/v1/me/session/passport:complete` (каждая завершённая категория, в том числе добавленная позже) | да, pending, та же строка профиля, `profile_revision` + 1 |
+| Завершение базы или категории после «Пройти заново» | да, та же строка, не второй профиль |
+| `PUT` отдельного ответа | нет |
+| `POST /api/v1/me/session:reset` | нет |
+| Открытие сессии и импорт из ENSI | нет, импорт пишется как уже `sent` |
+
+Прежние `pending` и `failed` этого клиента помечаются `superseded`. Воркер вызывает `upsertProfile` для того же `customer_id`. Тело, заголовки и повтор — [`ENSI.md`](ENSI.md).
+
+Второго канала наружу сейчас нет. Webhook в ENSI не реализован: это возможный вариант на будущее, в коде его нет. Забрать профиль самой может система с ключом: `GET /api/v1/integration/customers/{customerId}/profile`, заголовок `X-Api-Key`. Значение ключа — env `INTEGRATION_API_KEY`. В OpenAPI схема называется `X-Api-Key`, параметр заголовка тоже `X-Api-Key`.
 
 ## Зависимость: контракт ENSI
 
-Контракт приёма профиля принадлежит ENSI. Это зависимость сервиса опросника, не страница ЛК и не web-компонент.
+Контракт приёма профиля принадлежит ENSI. Нужны URL, HTTP-метод, авторизация сервис-сервис и правило идемпотентности. Пока команда ENSI их не передала, доставка идёт в файл (`ENSI_SINK=file`). Переключение на HTTP — `ENSI_SINK=http` и переменные из [`ENSI.md`](ENSI.md).
 
-Нужны URL, HTTP-метод, авторизация сервис-сервис и правило идемпотентности. Пока команда ENSI их не передала, доставка идёт в файл (`ENSI_SINK=file`). Переключение на HTTP — `ENSI_SINK=http` и переменные из [`ENSI.md`](ENSI.md).
+Тот же контракт задаёт чтение: при пустом входе API вызывает `fetchProfile` (`GET` по `ENSI_FETCH_PATH`).
 
-Тот же контракт задаёт чтение: при пустом входе API вызывает `fetchProfile` (`GET` по `ENSI_FETCH_PATH`). Ответ 404 и отсутствующий файл file-sink открывают опросник с начала и больше не спрашивают ENSI на этой сессии. Сетевая ошибка и 5xx тоже открывают опросник с начала, чтение повторяется при следующем входе. Импортированный профиль в очередь повторной отправки не ставится.
+У клиента один профиль красоты. Он хранится в базе сервиса и в ENSI. Повторное прохождение обновляет эту запись.
 
-```mermaid
-sequenceDiagram
-  participant API as API опросника
-  participant DB as PostgreSQL
-  participant Worker as Воркер
-  participant ENSI as Метод приёма профиля ENSI
+## Эталонный web-компонент
 
-  Note over API,DB: POST base:complete или passport:complete
-  API->>DB: ревизия профиля + строка outbox
-  Worker->>DB: poll, FOR UPDATE SKIP LOCKED
-  Worker->>ENSI: PUT, POST или PATCH
-  Note over Worker,ENSI: Idempotency-Key = customer_id:revision
-```
+Необязателен. Фронт ЛК его не встраивает.
 
-Метод, путь и заголовок авторизации задаются окружением (`ENSI_PROFILE_METHOD`, `ENSI_PROFILE_PATH`, `ENSI_AUTH_HEADER`). В репозитории нет зафиксированного URL ENSI. Тело — объект с `customer_id`, `attributes` и `beauty_profile`, пример в [`ENSI.md`](ENSI.md).
-
-Успешный ответ — 2xx. Поле `data.id`, если оно есть, сохраняется как внешний id. 5xx, 429 и сеть — повтор с паузой 1 мин, 2, 4 … до 24 ч; после `OUTBOX_MAX_ATTEMPTS` строка становится `dead`. Прочий 4xx остаётся `failed` и больше не берётся в работу, пока ревизию не поставят в очередь вручную (`pnpm ensi:resync -- --customer <id>`).
-
-У клиента один профиль красоты. Он хранится в базе сервиса и в ENSI, а не собирается заново при каждом открытии.
-
-`POST /me/session:reset` («Пройти заново») профиль не удаляет и в ENSI ничего не отправляет: новая сессия пустая, сохранённый результат на экране не подмешивается. Когда клиент снова завершает базу или категорию, сервис обновляет ту же строку профиля (`profile_revision` увеличивается) и воркер вызывает `upsertProfile` для того же `customer_id`. Второй профиль не создаётся.
-
-## Чего от ЛК в этом сценарии нет
-
-- Реализовывать методы сессии, конфига и аналитики.
-- Забирать опросник по `X-Api-Key` и рисовать вопросы своими компонентами.
-- Считать психотип в браузере: его считает API, web-компонент показывает `derived` и профиль из ответа.
-- Ходить в ENSI за результатом опросника, чтобы перестроить виджеты кабинета: коды уже в `detail.widgets`.
-
-Сервисное чтение `GET /api/v1/integration/...` нужно только если другая система хранит у себя текст опросника или забирает профиль без JWT пользователя. Web-компонент эти маршруты не вызывает.
-
-## Если опросник рисует фронт ЛК
-
-Это другой сценарий. Он есть в коде, для текущей встройки он не требуется.
-
-Фронт тогда сам вызывает методы с пометкой «внутренний, web-компонент» в [`API.md`](API.md): `GET /api/v1/survey`, `GET/PUT/POST` сессии и `POST /api/v1/events`. Авторизация та же, JWT пользователя. Завершение этапа (`base:complete`, `passport:complete`) по-прежнему обязано дойти до API: профиль в ENSI ставит в очередь только сервер.
-
-`GET /api/v1/survey` отдаёт тексты уже под один пол, без голосов психотипа и без скрытых вариантов. Полный документ опубликованной версии с голосами, тегами и обоими полами — `GET /api/v1/integration/surveys/current` (`X-Api-Key`). Психотип и виджеты в обоих случаях считает сервер в момент сохранения ответа и завершения этапа.
+`<idb-beauty-quiz>` в `apps/web` — эталон тех же вызовов: конфиг, сессия, ответы, завершение, профиль, события. Сборка: `pnpm --filter @idb/web build`, файлы `apps/web/dist/embed/idb-beauty-quiz.js` и `idb-beauty-quiz.iife.js`. Статика эталона — `https://beauty-quiz.iledebeaute.ru`. Если компонент всё же подключают, он шлёт тот же `Authorization: Bearer` из атрибута `token` и наружу кидает `quiz:base-completed`, `quiz:category-completed`, `quiz:closed`, `quiz:analytics`. Для задачи интеграции ЛК контракт — методы этого документа, не тег компонента.

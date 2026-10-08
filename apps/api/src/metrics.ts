@@ -67,7 +67,9 @@ export const metricsRoutes = fp(async (app: FastifyInstance, opts: { db: Db; met
     if (route !== "/metrics") opts.metrics.observe(route, reply.statusCode, reply.elapsedTime / 1000);
     done();
   });
-  app.get("/metrics", { schema: { tags: ["ops"], summary: "Prometheus-метрики" } }, async (_req, reply) =>
-    reply.type("text/plain; version=0.0.4").send(await opts.metrics.render(opts.db)),
+  app.get(
+    "/metrics",
+    { schema: { tags: ["ops"], security: [], summary: "Prometheus-метрики" } },
+    async (_req, reply) => reply.type("text/plain; version=0.0.4").send(await opts.metrics.render(opts.db)),
   );
 });

@@ -68,6 +68,12 @@ export const sessions = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /**
+     * true — чтение профиля из ENSI для этой сессии уже завершилось (профиль импортирован,
+     * профиля нет, либо сессия создана «Пройти заново» и импорт не нужен).
+     * false — ENSI был недоступен, следующий вход повторит чтение.
+     */
+    ensiChecked: boolean("ensi_checked").notNull().default(false),
   },
   (t) => [
     index("sessions_customer_status_idx").on(t.customerId, t.status),
@@ -93,7 +99,11 @@ export const answers = pgTable(
   (t) => [primaryKey({ columns: [t.sessionId, t.questionKey] })],
 );
 
-/** Снапшот BeautyProfile — то, что уходит в ENSI. Новая ревизия на каждое завершение этапа. */
+/**
+ * Текущий BeautyProfile клиента: одна строка на customer_id.
+ * Завершение этапа и повторное прохождение обновляют её. profile_revision растёт,
+ * чтобы доставка в ENSI не сошлась с предыдущим Idempotency-Key.
+ */
 export const profiles = pgTable(
   "profiles",
   {
@@ -107,6 +117,7 @@ export const profiles = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    uniqueIndex("profiles_customer_uq").on(t.customerId),
     uniqueIndex("profiles_customer_revision_uq").on(t.customerId, t.revision),
     index("profiles_customer_created_idx").on(t.customerId, t.createdAt),
   ],

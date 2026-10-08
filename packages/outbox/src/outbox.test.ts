@@ -47,10 +47,24 @@ async function seed(
     profile_revision: revision,
     gender: "female",
   };
-  const [p] = await db.insert(profiles).values({ customerId, sessionId: sid, revision, payload }).returning();
+  const [existing] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.customerId, customerId))
+    .limit(1);
+  let profileId = existing?.id;
+  if (existing) {
+    await db.update(profiles).set({ sessionId: sid, revision, payload }).where(eq(profiles.id, existing.id));
+  } else {
+    const [p] = await db
+      .insert(profiles)
+      .values({ customerId, sessionId: sid, revision, payload })
+      .returning();
+    profileId = p!.id;
+  }
   const [o] = await db
     .insert(ensiOutbox)
-    .values({ profileId: p!.id, customerId, revision, status, attempts, nextAttemptAt: new Date(0) })
+    .values({ profileId: profileId!, customerId, revision, status, attempts, nextAttemptAt: new Date(0) })
     .returning();
   return o!;
 }
@@ -149,16 +163,13 @@ describe("OutboxProcessor", () => {
     const sink = new MockEnsiSink();
     const p = new OutboxProcessor(db, sink);
     // эмулируем гонку: новая ревизия создаётся до отправки — для теста создаём заранее, но со статусом pending и будущим next_attempt_at
-    const [prof] = await db
-      .select({ sid: profiles.sessionId })
-      .from(profiles)
-      .where(eq(profiles.customerId, "f"));
-    const [p2] = await db
-      .insert(profiles)
-      .values({ customerId: "f", sessionId: prof!.sid, revision: 2, payload: { profile_revision: 2 } })
-      .returning();
+    const [prof] = await db.select({ id: profiles.id }).from(profiles).where(eq(profiles.customerId, "f"));
+    await db
+      .update(profiles)
+      .set({ revision: 2, payload: { profile_revision: 2, customer_id: "f", schema_version: "1.0" } })
+      .where(eq(profiles.id, prof!.id));
     await db.insert(ensiOutbox).values({
-      profileId: p2!.id,
+      profileId: prof!.id,
       customerId: "f",
       revision: 2,
       nextAttemptAt: new Date(Date.now() + 60_000),

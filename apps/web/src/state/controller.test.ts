@@ -3,6 +3,7 @@
  * поведение сервера воспроизводится точно, без сети и БД.
  */
 import {
+  type BeautyProfile,
   type SurveyState,
   applyAnswer,
   buildProfile,
@@ -27,6 +28,9 @@ class FakeApi {
   revision = 0;
   calls: string[] = [];
   events: unknown[] = [];
+  profileReads = 0;
+  profile: BeautyProfile | null = null;
+  profileError: Error | null = null;
 
   private view(): SessionView {
     return {
@@ -74,10 +78,14 @@ class FakeApi {
     this.stage = "intro";
     return this.view();
   };
-  getProfile = async () => ({
-    profile: null,
-    ensi: { status: "none", revision: null, lastAttemptAt: null, attempts: 0, lastError: null },
-  });
+  getProfile = async () => {
+    this.profileReads += 1;
+    if (this.profileError) throw this.profileError;
+    return {
+      profile: this.profile,
+      ensi: { status: "none" as const, revision: null, lastAttemptAt: null, attempts: 0, lastError: null },
+    };
+  };
   sendEvents = async (e: unknown[]) => {
     this.events.push(...e);
   };
@@ -117,6 +125,15 @@ function toConfig(s: Survey, gender: Gender | null): SurveyConfig {
     ui: s.ui,
     flags: { showDraftBadge: true, countSkippedCategory: true },
   };
+}
+
+function finishedBase(): SurveyState {
+  return ["gender:female", "psycho1:E", "psycho2:E", "psycho3:E", "category:face"].reduce((st, kv) => {
+    const [k, v] = kv.split(":") as [string, string];
+    const r = applyAnswer(survey, st, k, { optionCodes: [v] });
+    if (!r.ok) throw new Error(r.error.message);
+    return markBaseCompleted(r.state);
+  }, emptyState());
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -274,6 +291,88 @@ describe("QuizController", () => {
     expect(c.getState().phase).toBe("question");
     expect(c.current?.key).toBe("hair_condition");
     expect(c.index).toBe(1);
+  });
+
+  it("intro не запрашивает профиль", () => {
+    expect(api.profileReads).toBe(0);
+  });
+
+  it("открытие result1 отдаёт профиль в onBaseCompleted", async () => {
+    const a = new FakeApi();
+    a.stage = "result1";
+    a.state = finishedBase();
+    a.profile = buildProfile(survey, a.state, {
+      customerId: "c",
+      revision: 4,
+      updatedAt: "2026-10-07T00:00:00.000Z",
+    });
+    const got: BeautyProfile[] = [];
+    const categories: BeautyProfile[] = [];
+    const c = new QuizController(
+      a as unknown as ApiClient,
+      new Analytics(a as unknown as ApiClient, undefined, 10_000),
+      {
+        onBaseCompleted: (p) => got.push(p),
+        onCategoryCompleted: (p) => categories.push(p),
+      },
+    );
+    await c.init();
+    expect(c.getState().phase).toBe("result1");
+    expect(got).toEqual([a.profile]);
+    expect(categories).toEqual([]);
+    expect(c.getState().lastProfile).toBe(a.profile);
+    expect(a.profileReads).toBe(1);
+  });
+
+  it("открытие result2 отдаёт профиль в onCategoryCompleted", async () => {
+    const a = new FakeApi();
+    a.stage = "result2";
+    a.state = finishedBase();
+    a.profile = buildProfile(survey, a.state, {
+      customerId: "c",
+      revision: 2,
+      updatedAt: "2026-10-07T00:00:00.000Z",
+    });
+    const bases: BeautyProfile[] = [];
+    const categories: BeautyProfile[] = [];
+    const c = new QuizController(
+      a as unknown as ApiClient,
+      new Analytics(a as unknown as ApiClient, undefined, 10_000),
+      {
+        onBaseCompleted: (p) => bases.push(p),
+        onCategoryCompleted: (p) => categories.push(p),
+      },
+    );
+    await c.init();
+    expect(bases).toEqual([]);
+    expect(categories).toEqual([a.profile]);
+    expect(c.getState().phase).toBe("result2");
+  });
+
+  it("пустой профиль и ошибка чтения не мешают показать результат", async () => {
+    const a = new FakeApi();
+    a.stage = "result1";
+    const bases: BeautyProfile[] = [];
+    const quiet = new QuizController(
+      a as unknown as ApiClient,
+      new Analytics(a as unknown as ApiClient, undefined, 10_000),
+      { onBaseCompleted: (p) => bases.push(p) },
+    );
+    await quiet.init();
+    expect(bases).toEqual([]);
+    expect(quiet.getState().phase).toBe("result1");
+    expect(quiet.getState().lastProfile).toBeNull();
+
+    a.profileError = new Error("profile down");
+    a.profileReads = 0;
+    const broken = new QuizController(
+      a as unknown as ApiClient,
+      new Analytics(a as unknown as ApiClient, undefined, 10_000),
+      { onBaseCompleted: (p) => bases.push(p) },
+    );
+    await broken.init();
+    expect(bases).toEqual([]);
+    expect(broken.getState().phase).toBe("result1");
   });
 
   it("reset возвращает на intro", async () => {

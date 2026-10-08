@@ -1,8 +1,19 @@
 # ИЛЬ ДЕ БОТЭ · Опросник ЛК / Паспорт красоты
 
-Веб-сервис двухэтапного опросника для личного кабинета: база (психотип + набор виджетов ЛК) → Паспорт красоты (профиль по категориям). Профиль передаётся в ENSI через адаптер с гарантией доставки.
+Веб-сервис двухэтапного опросника для личного кабинета: база (психотип и коды блоков кабинета) → Паспорт красоты (профиль по категориям). Фронт ЛК сам рисует опросник и вызывает API с JWT пользователя. Интеграция только по API. Профиль в ENSI отправляет воркер. При открытии опросника для залогиненного клиента API читает уже сохранённый профиль из ENSI.
 
-Полное ТЗ — [`docs/TZ.md`](docs/TZ.md). Журнал решений — [`docs/DECISIONS.md`](docs/DECISIONS.md). Эксплуатация — [`docs/RUNBOOK.md`](docs/RUNBOOK.md). Интеграция — [`docs/ENSI.md`](docs/ENSI.md).
+| Кому | Документ |
+|---|---|
+| Команда ЛК: вызовы API | [`docs/INTEGRATION.md`](docs/INTEGRATION.md) |
+| Сводка для аналитика | [`docs/ANALYST.md`](docs/ANALYST.md) |
+| Где крутится сервис и что снаружи | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Все методы: кто вызывает и когда | [`docs/API.md`](docs/API.md) |
+| Приём профиля в ENSI | [`docs/ENSI.md`](docs/ENSI.md) |
+| Ответы аналитику | [`docs/analyst-response.md`](docs/analyst-response.md) |
+| Разбор комментариев ch1–ch21 | [`docs/analyst-comments-resolution.md`](docs/analyst-comments-resolution.md) |
+| Запуск сервиса | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) |
+| Журнал решений | [`docs/DECISIONS.md`](docs/DECISIONS.md) |
+| Исходное ТЗ (есть расхождения с кодом) | [`docs/TZ.md`](docs/TZ.md) |
 
 ## Быстрый старт (только Node, без Docker и PostgreSQL)
 
@@ -12,7 +23,7 @@ pnpm demo
 # опросник     → http://localhost:5173/?customer=demo
 # конструктор  → http://localhost:5174          (токен: dev-admin-token-change-me)
 # API/Swagger  → http://localhost:3000/docs
-# ENSI-API     → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
+# чтение опросника ключом (фронт ЛК этот метод не вызывает) → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
 # профили «в ENSI» → ./.ensi-out/*.json;  база → ./.pgdata (встроенная PGlite);  pnpm demo --reset — начать заново
 ```
 
@@ -22,10 +33,10 @@ pnpm demo
 
 ```bash
 docker compose up --build
-# web      → http://localhost:8080          опросник (эталон / предпросмотр)
+# web      → http://localhost:8080          предпросмотр черновика
 # admin    → http://localhost:8081          конструктор (токен: dev-admin-token-change-me)
 # api      → http://localhost:3000/api/v1  (Swagger: http://localhost:3000/docs)
-# ENSI     → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
+# чтение опросника ключом → GET http://localhost:3000/api/v1/integration/surveys/current  (X-Api-Key: dev-integration-key-change-me)
 # профили, ушедшие «в ENSI» (FileEnsiSink) → ./.ensi-out/*.json
 ```
 
@@ -43,23 +54,21 @@ pnpm dev                        # api :3000, worker, web :5173, admin :5174
 
 ## Как это устроено
 
-Сервис — источник правды по опроснику и результатам: продакт собирает опросник в **конструкторе** и публикует версию;
-**ENSI** и фронты ЛК забирают опубликованный опросник по сервисному API (`X-Api-Key`) и рисуют его сами (или встраивают
-эталонный web-компонент); ответы приходят в API сервиса, он считает психотип/виджеты/заполненность и **пушит профиль в ENSI**
-через outbox. Подробнее: `docs/ENSI.md`.
+Production работает в инфраструктуре ИЛЬ ДЕ БОТЭ: API `https://beauty-api.iledebeaute.ru`. Сервис хранит опросник и считает результат. Продакт публикует версию в конструкторе. Фронт личного кабинета рисует вопросы сам: забирает конфиг (`GET /api/v1/survey`) и сдаёт ответы методами сессии с JWT, который выпустил backend ЛК. API пишет профиль в outbox, воркер отправляет его в ENSI. Контракт приёма профиля принадлежит ENSI. Код сервиса — репозиторий `pomazkoff/idb-beauty-passport`.
+
+Сервисное чтение по заголовку `X-Api-Key` (`/api/v1/integration/...`) нужно системе, которая забирает текст опросника или профиль без JWT. Фронт ЛК эти маршруты не вызывает. Схема — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Что внутри
 
-- 63 вопроса в 10 ветках (3 общие для обоих полов) со стабильными кодами — `docs/content-map.md`
-- Тесты: 99 (контент) + 42 (движок, 100 % строк) + 29 (API, живой PostgreSQL) + 11 (воркер) + 9 (ENSI-адаптер) + 7 (контроллер UI) + e2e (Playwright + axe)
-- Встраиваемый web-компонент `<idb-beauty-quiz>` — 18–20 KB gzip
+- 63 вопроса в 10 ветках конфига (3 общие для обоих полов: `shared_sun`, `shared_perfume`, `shared_home`) со стабильными кодами — `docs/content-map.md`
+- Тесты: `pnpm test` (Vitest) и `pnpm test:e2e` (Playwright + axe)
 
 ## Структура
 
 ```
 apps/api            Fastify REST API, Drizzle, auth, outbox
 apps/worker         доставка профилей в ENSI
-apps/web            React: эталонный опросник (standalone, web-компонент, предпросмотр черновиков)
+apps/web            страница предпросмотра черновика для конструктора
 apps/admin          конструктор опросника для продакта (версии, редактор, проверка, публикация)
 packages/core       чистый движок: ветвление, психотип, заполненность, виджеты, профиль
 packages/survey-config  survey.v1.json + Zod-схема + валидатор + генератор content-map

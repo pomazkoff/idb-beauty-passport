@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "ensi_checked" boolean DEFAULT false NOT NULL;

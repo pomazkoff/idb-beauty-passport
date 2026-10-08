@@ -19,9 +19,11 @@ import {
   markBaseCompleted,
 } from "@idb/core";
 import { type Db, type SessionRow, affectedOf, answers, ensiOutbox, profiles, sessions } from "@idb/db";
+import type { EnsiSink } from "@idb/ensi-client";
 import { type Survey, findBranch } from "@idb/survey-config";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { AppError } from "../errors.js";
+import { type RestoredSession, restoreStateFromProfile } from "./ensi-restore.js";
 import type { SurveyRegistry } from "./survey-registry.js";
 
 export type SessionView = {
@@ -41,31 +43,228 @@ export type SyncStatus = {
   lastError: string | null;
 };
 
+type ActiveSession = SessionRow & { answers: (typeof answers.$inferSelect)[] };
+
 export class SessionService {
   constructor(
     private readonly db: Db,
     private readonly registry: SurveyRegistry,
+    private readonly sink?: EnsiSink,
+    private readonly log?: { warn: (obj: object, msg: string) => void },
   ) {}
 
   // ── чтение ──────────────────────────────────────────────────────
-  /** Активная сессия клиента; создаётся на опубликованной версии (или на `version` — предпросмотр черновика). */
+  /**
+   * Активная сессия клиента; создаётся на опубликованной версии (или на `version` — предпросмотр черновика).
+   * Пустой вход залогиненного клиента читает профиль из ENSI и, если он есть, открывает экран результата.
+   * Ошибка ENSI и пустой file-sink не мешают открыть опросник с начала.
+   */
   async getOrCreate(customerId: string, version?: string): Promise<SessionView> {
-    const existing = await this.db.query.sessions.findFirst({
+    const existing = await this.findActive(customerId);
+    if (existing && !this.isBlankIntro(existing))
+      return this.toView(existing, existing.answers, await this.registry.get(existing.surveyVersion));
+
+    // Предпросмотр черновика и «Пройти заново» (ensiChecked) не подмешивают профиль из ENSI.
+    if (version) {
+      if (existing)
+        return this.toView(existing, existing.answers, await this.registry.get(existing.surveyVersion));
+      return this.insertBlank(customerId, await this.registry.get(version), true, version);
+    }
+    if (existing?.ensiChecked) {
+      return this.toView(existing, existing.answers, await this.registry.get(existing.surveyVersion));
+    }
+
+    const fetched = await this.readEnsiProfile(customerId);
+    if (fetched.ok && fetched.profile) {
+      const survey = await this.surveyFor(fetched.profile);
+      const restored = restoreStateFromProfile(survey, fetched.profile);
+      if (restored) {
+        const applied = await this.persistRestored(
+          customerId,
+          existing?.id ?? null,
+          survey,
+          restored,
+          fetched.profile,
+        );
+        if (applied) return applied;
+        const fresh = await this.findActive(customerId);
+        if (fresh) return this.toView(fresh, fresh.answers, await this.registry.get(fresh.surveyVersion));
+      }
+    }
+
+    const checked = fetched.ok;
+    if (existing) {
+      if (checked)
+        await this.db.update(sessions).set({ ensiChecked: true }).where(eq(sessions.id, existing.id));
+      return this.toView(existing, existing.answers, await this.registry.get(existing.surveyVersion));
+    }
+    return this.insertBlank(customerId, this.registry.current(), checked);
+  }
+
+  private async findActive(customerId: string): Promise<ActiveSession | undefined> {
+    return this.db.query.sessions.findFirst({
       where: and(eq(sessions.customerId, customerId), eq(sessions.status, "active")),
       with: { answers: true },
     });
-    if (existing)
-      return this.toView(existing, existing.answers, await this.registry.get(existing.surveyVersion));
+  }
 
-    const target = version ? await this.registry.get(version) : this.registry.current();
+  /** Intro без единого ответа: можно импортировать профиль, не затирая прохождение. */
+  private isBlankIntro(row: ActiveSession): boolean {
+    return (
+      row.stage === "intro" &&
+      !row.baseCompleted &&
+      row.completedCategories.length === 0 &&
+      row.answers.length === 0
+    );
+  }
+
+  private async surveyFor(profile: BeautyProfile): Promise<Survey> {
+    try {
+      return await this.registry.get(profile.survey_version);
+    } catch {
+      return this.registry.current();
+    }
+  }
+
+  /** ok: false — ENSI недоступен, проверку не запоминаем и повторим на следующем входе. */
+  private async readEnsiProfile(
+    customerId: string,
+  ): Promise<{ ok: true; profile: BeautyProfile | null } | { ok: false }> {
+    if (!this.sink?.fetchProfile) return { ok: true, profile: null };
+    try {
+      const profile = await this.sink.fetchProfile(customerId);
+      if (profile && profile.customer_id !== customerId) {
+        this.log?.warn({ customerId }, "ensi: профиль с чужим customer_id, импорт пропущен");
+        return { ok: true, profile: null };
+      }
+      return { ok: true, profile: profile ?? null };
+    } catch (e) {
+      this.log?.warn(
+        { customerId, err: (e as Error).message },
+        "ensi: профиль не прочитан, опросник откроется с начала",
+      );
+      return { ok: false };
+    }
+  }
+
+  private async insertBlank(
+    customerId: string,
+    survey: Survey,
+    ensiChecked: boolean,
+    previewVersion?: string,
+  ): Promise<SessionView> {
     const [row] = await this.db
       .insert(sessions)
-      .values({ customerId, surveyVersion: target.version })
+      .values({ customerId, surveyVersion: survey.version, ensiChecked })
       .onConflictDoNothing()
       .returning();
-    if (row) return this.toView(row, [], target);
-    // гонка: кто-то создал параллельно
-    return this.getOrCreate(customerId, version);
+    if (row) return this.toView(row, [], survey);
+    return this.getOrCreate(customerId, previewVersion);
+  }
+
+  /**
+   * Записывает восстановленные ответы и сам профиль. В outbox строка сразу `sent`:
+   * профиль уже лежит в ENSI, повторно его не пушим. null — сессию успели заполнить параллельно.
+   */
+  private async persistRestored(
+    customerId: string,
+    existingId: string | null,
+    survey: Survey,
+    restored: RestoredSession,
+    profile: BeautyProfile,
+  ): Promise<SessionView | null> {
+    const now = new Date();
+    const saved = await this.db.transaction(async (tx) => {
+      let sessionId = existingId;
+      if (sessionId) {
+        const [cur] = await tx.select().from(sessions).where(eq(sessions.id, sessionId));
+        if (!cur || cur.status !== "active" || cur.stage !== "intro" || cur.baseCompleted) return null;
+        const taken = await tx
+          .select({ key: answers.questionKey })
+          .from(answers)
+          .where(eq(answers.sessionId, sessionId));
+        if (taken.length) return null;
+      }
+      if (!sessionId) {
+        const [row] = await tx
+          .insert(sessions)
+          .values({
+            customerId,
+            surveyVersion: survey.version,
+            stage: restored.stage,
+            baseCompleted: true,
+            completedCategories: restored.state.completedCategories,
+            ensiChecked: true,
+            updatedAt: now,
+          })
+          .onConflictDoNothing()
+          .returning();
+        sessionId = row?.id ?? null;
+      }
+      if (!sessionId) {
+        const [cur] = await tx
+          .select()
+          .from(sessions)
+          .where(and(eq(sessions.customerId, customerId), eq(sessions.status, "active")));
+        if (!cur || cur.stage !== "intro" || cur.baseCompleted) return null;
+        const taken = await tx
+          .select({ key: answers.questionKey })
+          .from(answers)
+          .where(eq(answers.sessionId, cur.id));
+        if (taken.length) return null;
+        sessionId = cur.id;
+      }
+      if (!sessionId) return null;
+      await tx
+        .update(sessions)
+        .set({
+          surveyVersion: survey.version,
+          stage: restored.stage,
+          baseCompleted: true,
+          completedCategories: restored.state.completedCategories,
+          activeCategory: null,
+          ensiChecked: true,
+          updatedAt: now,
+        })
+        .where(eq(sessions.id, sessionId));
+      await tx.delete(answers).where(eq(answers.sessionId, sessionId));
+      const answerRows = Object.entries(restored.state.answers).map(([questionKey, a]) => ({
+        sessionId,
+        questionKey,
+        optionCodes: a.optionCodes,
+        skipped: a.skipped,
+        timeMs: a.timeMs ?? null,
+        answeredAt: a.answeredAt && !Number.isNaN(Date.parse(a.answeredAt)) ? new Date(a.answeredAt) : now,
+      }));
+      if (answerRows.length) await tx.insert(answers).values(answerRows);
+
+      const revision = profile.profile_revision > 0 ? profile.profile_revision : 1;
+      const [stored] = await tx
+        .insert(profiles)
+        .values({
+          customerId,
+          sessionId,
+          revision,
+          payload: { ...profile, customer_id: customerId, profile_revision: revision },
+          createdAt: now,
+        })
+        .onConflictDoNothing({ target: profiles.customerId })
+        .returning({ id: profiles.id });
+      if (stored) {
+        await tx.insert(ensiOutbox).values({
+          profileId: stored.id,
+          customerId,
+          revision,
+          status: "sent",
+          sentAt: now,
+        });
+      }
+      return sessionId;
+    });
+    if (!saved) return null;
+    const row = await this.findActive(customerId);
+    if (!row) return null;
+    return this.toView(row, row.answers, await this.registry.get(row.surveyVersion));
   }
 
   /**
@@ -229,8 +428,9 @@ export class SessionService {
   }
 
   /**
-   * В одной транзакции: обновить сессию, записать новую ревизию профиля,
-   * положить задание в outbox, пометить старые pending того же клиента superseded (ТЗ 10.3).
+   * В одной транзакции: обновить сессию и тот же профиль клиента (upsert),
+   * положить задание в outbox, пометить старые pending того же клиента superseded.
+   * Новая строка profiles не создаётся: у клиента один профиль на всё время.
    */
   private async persistStage(
     row: SessionRow & { survey: Survey },
@@ -251,14 +451,13 @@ export class SessionService {
         })
         .where(eq(sessions.id, row.id));
 
-      const [last] = await tx
-        .select({ revision: profiles.revision })
+      const [existing] = await tx
+        .select({ id: profiles.id, revision: profiles.revision })
         .from(profiles)
         .where(eq(profiles.customerId, row.customerId))
-        .orderBy(desc(profiles.revision))
         .limit(1)
         .for("update");
-      const revision = (last?.revision ?? 0) + 1;
+      const revision = (existing?.revision ?? 0) + 1;
 
       const profile = buildProfile(row.survey, state, {
         customerId: row.customerId,
@@ -266,10 +465,25 @@ export class SessionService {
         updatedAt: now.toISOString(),
       });
 
-      const [p] = await tx
-        .insert(profiles)
-        .values({ customerId: row.customerId, sessionId: row.id, revision, payload: profile, createdAt: now })
-        .returning({ id: profiles.id });
+      let profileId = existing?.id;
+      if (existing) {
+        await tx
+          .update(profiles)
+          .set({ sessionId: row.id, revision, payload: profile })
+          .where(eq(profiles.id, existing.id));
+      } else {
+        const [p] = await tx
+          .insert(profiles)
+          .values({
+            customerId: row.customerId,
+            sessionId: row.id,
+            revision,
+            payload: profile,
+            createdAt: now,
+          })
+          .returning({ id: profiles.id });
+        profileId = p!.id;
+      }
 
       await tx
         .update(ensiOutbox)
@@ -277,7 +491,7 @@ export class SessionService {
         .where(
           and(eq(ensiOutbox.customerId, row.customerId), inArray(ensiOutbox.status, ["pending", "failed"])),
         );
-      await tx.insert(ensiOutbox).values({ profileId: p!.id, customerId: row.customerId, revision });
+      await tx.insert(ensiOutbox).values({ profileId: profileId!, customerId: row.customerId, revision });
 
       return profile;
     });
@@ -291,9 +505,11 @@ export class SessionService {
         .update(sessions)
         .set({ status: "archived", archivedAt: now, updatedAt: now })
         .where(and(eq(sessions.customerId, customerId), eq(sessions.status, "active")));
-      await tx
-        .insert(sessions)
-        .values({ customerId, surveyVersion: version ?? this.registry.current().version });
+      await tx.insert(sessions).values({
+        customerId,
+        surveyVersion: version ?? this.registry.current().version,
+        ensiChecked: true,
+      });
     });
     return this.getOrCreate(customerId);
   }
@@ -302,7 +518,10 @@ export class SessionService {
     const p = await this.db.query.profiles.findFirst({
       where: eq(profiles.customerId, customerId),
       orderBy: desc(profiles.revision),
-      with: { outbox: true },
+      with: {
+        // Одна строка профиля и несколько доставок: статус берём у старшей ревизии.
+        outbox: { orderBy: (row, { desc: byRevision }) => [byRevision(row.revision)] },
+      },
     });
     if (!p)
       return {

@@ -1,6 +1,7 @@
 import type { Survey } from "@idb/survey-config";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Report, type VersionDetail, api } from "../api.js";
+import { openContentMap } from "../content-map.js";
 import {
   BaseEditor,
   BranchEditor,
@@ -176,9 +177,20 @@ export function EditorPage({
           </span>
         </div>
         <div className="inline">
-          <a className="btn" href={api.contentMapUrl(version)} target="_blank" rel="noreferrer">
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              void openContentMap({
+                version,
+                open: () => window.open("", "_blank"),
+                load: (v) => api.contentMap(v),
+                onError: toast,
+              })
+            }
+          >
             Карта контента
-          </a>
+          </button>
           <a className="btn" href={api.previewUrl(version)} target="_blank" rel="noreferrer">
             Предпросмотр
           </a>

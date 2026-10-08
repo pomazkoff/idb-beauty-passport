@@ -33,12 +33,13 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
   const { registry, config } = opts;
   const guard = { preHandler: requireAdmin(config) };
   const tags = ["admin"];
+  const security = [{ "X-Admin-Token": [] }];
 
-  app.get("/admin/me", { ...guard, schema: { tags, summary: "Проверка токена" } }, async () => ({
+  app.get("/admin/me", { ...guard, schema: { tags, security, summary: "Проверка токена" } }, async () => ({
     data: { ok: true },
   }));
 
-  app.get("/admin/surveys", { ...guard, schema: { tags, summary: "Список версий" } }, async () => ({
+  app.get("/admin/surveys", { ...guard, schema: { tags, security, summary: "Список версий" } }, async () => ({
     data: await registry.list(),
   }));
 
@@ -48,6 +49,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
       ...guard,
       schema: {
         tags,
+        security,
         summary: "Создать черновик (копия опубликованной или указанной версии)",
         body: z.object({
           version: z.string().regex(/^\d+\.\d+\.\d+$/),
@@ -64,7 +66,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
 
   app.get(
     "/admin/surveys/:version",
-    { ...guard, schema: { tags, summary: "Версия целиком", params: Version } },
+    { ...guard, schema: { tags, security, summary: "Версия целиком", params: Version } },
     async (req) => {
       const { version } = req.params as { version: string };
       const row = await registry.getRow(version);
@@ -89,6 +91,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
       ...guard,
       schema: {
         tags,
+        security,
         summary: "Сохранить черновик",
         params: Version,
         body: z.object({ config: z.unknown() }),
@@ -104,7 +107,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
 
   app.post(
     "/admin/surveys/:version/validate",
-    { ...guard, schema: { tags, summary: "Проверить версию", params: Version } },
+    { ...guard, schema: { tags, security, summary: "Проверить версию", params: Version } },
     async (req) => {
       const { version } = req.params as { version: string };
       return { data: await registry.validate(version) };
@@ -113,7 +116,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
 
   app.post(
     "/admin/surveys/:version/publish",
-    { ...guard, schema: { tags, summary: "Опубликовать (предыдущая — в архив)", params: Version } },
+    { ...guard, schema: { tags, security, summary: "Опубликовать (предыдущая — в архив)", params: Version } },
     async (req) => {
       const { version } = req.params as { version: string };
       return { data: await registry.publish(version) };
@@ -122,7 +125,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
 
   app.delete(
     "/admin/surveys/:version",
-    { ...guard, schema: { tags, summary: "Удалить черновик", params: Version } },
+    { ...guard, schema: { tags, security, summary: "Удалить черновик", params: Version } },
     async (req, reply) => {
       const { version } = req.params as { version: string };
       await registry.deleteDraft(version);
@@ -132,7 +135,7 @@ export async function adminRoutes(app: FastifyInstance, opts: { registry: Survey
 
   app.get(
     "/admin/surveys/:version/content-map",
-    { ...guard, schema: { tags, summary: "Карта контента (markdown)", params: Version } },
+    { ...guard, schema: { tags, security, summary: "Карта контента (markdown)", params: Version } },
     async (req, reply) => {
       const { version } = req.params as { version: string };
       const row = await registry.getRow(version);

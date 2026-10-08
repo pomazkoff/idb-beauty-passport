@@ -72,7 +72,7 @@ sequenceDiagram
   Note over API: та же строка профиля, новая доставка в ENSI
   User->>LK: Пройти заново
   LK->>API: POST /api/v1/me/session:reset
-  Note over API: сессия пустая; строка профиля и запись в ENSI остаются
+  Note over API: сессия пустая, строка профиля и запись в ENSI остаются
   LK->>API: GET /api/v1/survey
   User->>LK: заново отвечает базу
   LK->>API: POST /api/v1/me/session/base:complete
@@ -273,7 +273,7 @@ File-sink читает `ENSI_FILE_DIR/<customer_id>/latest.json`. Файла н�
 
 ```mermaid
 sequenceDiagram
-  participant S as "Система с X-Api-Key"
+  participant S as Система с X-Api-Key
   participant API as API опросника
 
   S->>API: GET /api/v1/integration/surveys

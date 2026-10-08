@@ -6,7 +6,7 @@
 |---|---|---|---|
 | api | `node apps/api/dist/main.js` | 3000 | PostgreSQL |
 | worker | `node apps/worker/dist/main.js` | — | PostgreSQL, ENSI (или file/mock) |
-| web | статика `apps/web/dist` (nginx) + `apps/web/dist/embed/idb-beauty-quiz.js` для ЛК | 80 | api (CORS) |
+| web | статика предпросмотра черновика `apps/web/dist` (nginx) | 80 | api (CORS) |
 | admin | конструктор, статика `apps/admin/dist` (nginx) | 80 (compose: 8081) | api (CORS, `ADMIN_TOKEN`) |
 
 API stateless — масштабируется горизонтально. Воркер можно запускать в нескольких экземплярах (`FOR UPDATE SKIP LOCKED`).
@@ -35,7 +35,7 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 
 - `AUTH_MODE=jwt` + `JWT_JWKS_URL` **или** `JWT_PUBLIC_KEY_PEM`, `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_CUSTOMER_CLAIM` (по умолчанию `sub`).
   `AUTH_MODE=dev` (заголовок `X-Customer-Id`) в `NODE_ENV=production` **не стартует**.
-- `CORS_ORIGINS` — origin-ы через запятую. В production: origin страницы ЛК, с которой фронт вызывает API, и `https://beauty-quiz.iledebeaute.ru`, если поднимают эталон. Пусто = CORS выключен (только same-origin). `localhost` в `.env.example` и Docker Compose — локальный стенд.
+- `CORS_ORIGINS` — origin-ы через запятую. В production: origin страницы ЛК, с которой фронт вызывает API. Пусто = CORS выключен (только same-origin). `localhost` в `.env.example` и Docker Compose — локальный стенд.
 - `SWAGGER_ENABLED=false` в production (или за внутренним ingress).
 - `ENSI_SINK=http` + `ENSI_*` — см. `docs/ENSI.md`.
 - `SHOW_DRAFT_BADGE=false` в production (плашка «вопрос дописан» — для приёмки контента).
@@ -44,25 +44,11 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 - `DATABASE_URL=pglite:<каталог>` (или `pglite:memory`) — встроенная база вместо PostgreSQL: один процесс, без конкурентного доступа; воркер outbox запускается внутри API (`OUTBOX_POLL_INTERVAL_MS`, по умолчанию 2000). **Только для демо, разработки и тестов** — в production нужен PostgreSQL.
 - `INTEGRATION_API_KEY` (≥16 символов) — ключ для ENSI (`X-Api-Key`); пусто = интеграционный API выключен.
 
-## Интеграция ЛК и эталон
+## Интеграция ЛК
 
-Контракт для команды ЛК — нативные вызовы API, [`INTEGRATION.md`](INTEGRATION.md). API — `https://beauty-api.iledebeaute.ru`. Фронт ЛК сам шлёт `POST /api/v1/events`.
+Контракт для команды ЛК — вызовы API, [`INTEGRATION.md`](INTEGRATION.md). API — `https://beauty-api.iledebeaute.ru`. Фронт ЛК сам рисует опросник, шлёт JWT пользователя и `POST /api/v1/events`.
 
-Эталонный компонент ниже необязателен. Статика эталона — `https://beauty-quiz.iledebeaute.ru`. `?customer=` и заголовок `X-Customer-Id` работают только при `AUTH_MODE=dev` и в production выключены.
-
-```html
-<script type="module" src="https://beauty-quiz.iledebeaute.ru/embed/idb-beauty-quiz.js"></script>
-<idb-beauty-quiz api-base="https://beauty-api.iledebeaute.ru" token="<JWT пользователя ЛК>"></idb-beauty-quiz>
-<script>
-  document.addEventListener("quiz:base-completed", (e) => {
-    const { priority, base } = e.detail.widgets;
-    rebuildWidgets(priority, base);
-  });
-  document.addEventListener("quiz:category-completed", (e) => refreshRecommendations(e.detail));
-</script>
-```
-
-Атрибуты: `inherit-fonts` (шрифты хоста), `no-fonts` (не подключать Google Fonts), на dev-стенде ещё `customer-id`. Рядом с ESM лежит `idb-beauty-quiz.iife.js`. Аналитика: при наличии `window.dataLayer` компонент пушит туда события и параллельно батчем вызывает `POST /api/v1/events`. Наружу ещё есть `quiz:closed` и `quiz:analytics`.
+`?customer=` и заголовок `X-Customer-Id` работают только при `AUTH_MODE=dev` и в production выключены.
 
 ## Обновление контента опросника
 
@@ -70,7 +56,7 @@ pnpm --filter @idb/api build && pnpm --filter @idb/worker build && pnpm --filter
 
 1. «Новый черновик» — копия опубликованной версии с новым номером (semver).
 2. Правки сохраняются автоматически; панель «Проверка» показывает замечания трёх видов: структура, замороженные коды (то, что уже опубликовано, нельзя удалить/переименовать — только скрыть), правила опросника.
-3. «Предпросмотр» открывает эталонный опросник на черновике (ссылка содержит токен — не пересылать).
+3. «Предпросмотр» открывает опросник на черновике (ссылка содержит токен — не пересылать).
 4. «Опубликовать» — доступно при нуле замечаний. Предыдущая версия уходит в архив; активные сессии пользователей доживают на своей версии, новые начинаются на опубликованной; ENSI видит новую версию в `GET /integration/surveys/current`.
 5. «Карта контента» — markdown со всеми кодами. Конструктор запрашивает его с `X-Admin-Token` и открывает текст в новой вкладке. Токен в адрес не попадает. Без заголовка маршрут отвечает 401.
 

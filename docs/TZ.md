@@ -10,14 +10,14 @@
 |---|---|
 | Prisma | Drizzle, пакет `packages/db` |
 | Админ-UI вне объёма, контент только через JSON и PR | Конструктор `apps/admin`, версии в БД. `survey.v1.json` — сид |
-| `packages/core` считает результат и на фронте | В рантайме считает API. Компонент показывает `derived` и `BeautyProfile` |
+| `packages/core` считает результат и на фронте | В рантайме считает API. Фронт ЛК показывает `derived` и `BeautyProfile` из ответа |
 | 13 веток-копий | 10 записей в конфиге, три общие: `shared_sun`, `shared_perfume`, `shared_home` |
 | `POST /sessions/reset`, в ENSI сразу новый снимок | `POST /api/v1/me/session:reset` архивирует сессию и профиль не трогает. Следующее завершение обновляет ту же строку профиля и делает upsert в ENSI |
 | В сессии есть `currentQuestionKey` | Нет. Фронт ЛК сам находит первый неотвеченный вопрос |
-| Интеграция через встройку web-компонента | Контракт задачи — нативный API, фронт ЛК рисует опросник. Компонент — необязательный эталон |
+| Отдельный фронт опросника встраивается в ЛК | Интеграция только по API: фронт ЛК рисует опросник и вызывает методы |
 | Оптимистичный кэш в `sessionStorage` | Кэш только в памяти контроллера |
-| Атрибут `theme`, бандл `embed.js`, query `customer_token` | Атрибутов темы нет. Файлы `idb-beauty-quiz.js` и `idb-beauty-quiz.iife.js`. Standalone: `?token=` и `?customer=` |
-| Аналитика через `sendBeacon`, сервер сам пишет `quiz_base_completed` | `fetch` с `keepalive`. События шлёт web-компонент на `POST /api/v1/events` |
+| Атрибут `theme`, бандл `embed.js`, query `customer_token` | Интеграция — методы API. На стенде разработчика: `?token=` и `?customer=` |
+| Аналитика через `sendBeacon`, сервер сам пишет `quiz_base_completed` | События шлёт фронт ЛК на `POST /api/v1/events` |
 | Любая смена опубликованной версии даёт 409 на старой сессии | 409 `SURVEY_VERSION_MISMATCH`, только если версию сессии удалили. После публикации старая сессия доживает |
 | `GET /metrics` в одном списке с `/api/v1` | `GET /metrics` в корне процесса. Health: `GET /api/v1/health` и `GET /api/v1/ready` |
 | `ENSI_FETCH_PATH` читает профиль при входе | `GET /me/session` на пустом входе вызывает `fetchProfile`. Ошибка ENSI и отсутствие `latest.json` открывают опросник с начала |

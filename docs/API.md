@@ -25,13 +25,11 @@ OpenAPI: `GET /api/v1/openapi.json` и Swagger UI `/docs`, если `SWAGGER_ENA
 | Конструктор | `apps/admin` → API | заголовок `X-Admin-Token` | Черновики и публикация |
 | Служебные методы | оркестратор, Prometheus → процесс | нет | `health`, `ready`, `metrics`. Это не роль |
 
-Эталонный `<idb-beauty-quiz>` ходит в те же методы сессии, что и фронт ЛК. Для интеграции ЛК он не нужен.
-
 Лимит `RATE_LIMIT_PER_MINUTE` (по умолчанию 60 запросов в минуту) стоит на `PUT /me/session/answers/{questionKey}` и на `POST /events`. Ключ лимита — `customerId`, иначе IP. Остальные методы сессии лимитом маршрута не закрыты. Сервисное чтение ограничено 600 запросами в минуту на IP: у ключа нет `customerId`, поэтому ключ лимитера — адрес клиента. `GET /survey`, health и конструктор лимитом маршрута не закрыты.
 
 ## Методы фронта ЛК
 
-Их вызывает фронт личного кабинета. Эталон `apps/web/src/api/client.ts` делает то же самое и для интеграции не обязателен.
+Их вызывает фронт личного кабинета.
 
 Ниже — порядок одного прохода. Профиль только что завершённого этапа фронт берёт из ответа `base:complete` и `passport:complete`. `GET /me/profile` нужен, когда сессия уже на `result1` или `result2`: оттуда берутся коды виджетов ЛК.
 
@@ -145,7 +143,7 @@ sequenceDiagram
 
 `SURVEY_VERSION_MISMATCH` (409) — версию, на которой начата сессия, удалили. Публикация новой версии сама по себе сессию не ломает: старые сессии дочитываются на своей версии, новые открываются на опубликованной.
 
-Предпросмотр черновика (только конструктор): query `version` на `GET /me/session`, `POST /me/session:reset` и `GET /survey`. Для черновика нужен `X-Admin-Token`, иначе 403. Standalone передаёт это из URL `?version=&admin=`. Фронт ЛК предпросмотр не вызывает.
+Предпросмотр черновика (только конструктор): query `version` на `GET /me/session`, `POST /me/session:reset` и `GET /survey`. Для черновика нужен `X-Admin-Token`, иначе 403. Страница предпросмотра передаёт это из URL `?version=&admin=`. Фронт ЛК предпросмотр не вызывает.
 
 ### `GET /api/v1/me/profile`
 
@@ -304,13 +302,13 @@ sequenceDiagram
 
 ## Конструктор
 
-Контур: приложение `apps/admin`. В ЛК не встраивается. Пустой `ADMIN_TOKEN` выключает префикс.
+Контур: приложение `apps/admin`. В страницу ЛК не входит. Пустой `ADMIN_TOKEN` выключает префикс.
 
 ```mermaid
 sequenceDiagram
   participant A as Конструктор
   participant API as API опросника
-  participant W as Standalone опросника
+  participant W as Предпросмотр
 
   A->>API: GET /api/v1/admin/me
   A->>API: GET /api/v1/admin/surveys
